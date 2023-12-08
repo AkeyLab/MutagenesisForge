@@ -9,6 +9,7 @@ import pysam
 import os
 from collections import defaultdict
 import tempfile
+from pyfaidx import Fasta
 
 @contextmanager
 def my_open(filename: str, mode: str):
@@ -19,6 +20,19 @@ def my_open(filename: str, mode: str):
         open_file = open(filename, mode)
     yield open_file
     open_file.close()
+
+
+def get_trinecleotide_context(chromosome, position, fasta_file):
+    # Load the reference genome FASTA file
+    genome = Fasta(fasta_file)
+
+    # Retrieve the sequence from the reference genome
+    base_before = genome[chromosome][position - 1].seq
+    base = genome[chromosome][position].seq
+    base_after = genome[chromosome][position + 1].seq
+    
+    return base_before, base, base_after
+
 
 def get_base(fasta, chrom: str, position: str):
     '''
@@ -113,26 +127,6 @@ def create_vcf_file(input_file, output_file):
             for pos in sorted(variant_dict[chrom].keys()):
                 f.write(variant_dict[chrom][pos])
 
-
-'''
-def ratio(vep_file):
-    syn_value = 0
-    mis_value = 0
-    with open(vep_file, 'r') as f:
-        for line in f:
-            if line.startswith('#'):
-                continue
-            data = line.split()
-            conseq = data[6]
-            if conseq == 'missense_variant':
-                mis_value = mis_value + 1
-            if conseq == 'synonymous_variant':
-                syn_value = syn_value + 1
-    ratio = mis_value / syn_value
-    return(ratio)
-'''
-
-    
 def main(input_bed_file, input_mut_file, fasta_file):
     fasta = pysam.Fastafile(fasta_file)
     # read bed file and store the regions in an array
@@ -154,9 +148,13 @@ def main(input_bed_file, input_mut_file, fasta_file):
             header_dict = dict(zip(header, range(len(header))))
             chr_pos_dict = {}
             for line in f:
+                if line.startswith('#'):
+                    continue
                 line = line.strip().split()
                 add_one_random_mut = False
-                before_base, after_base, ref_base = line[header_dict['BEFORE']], line[header_dict['AFTER']], line[header_dict['REF']]
+                chromosome = line[0]
+                position = line[1]
+                before_base, ref_base, after_base = get_trinucleotide_context(chromosome, position, fasta)
                 while not add_one_random_mut:
                     random_chr, random_pos, ref_base, alt = get_random_mut(before_base, after_base, ref_base, regions, fasta)
                     chr_pos = random_chr + "_" + str(random_pos)
@@ -175,7 +173,7 @@ def main(input_bed_file, input_mut_file, fasta_file):
         # should be able to use argparse input varaibles
         # issue here with directory of output file from vep call
         with open(vep, 'w'):
-            vep_cmd = '/projects/AKEY/akey_vol1/software/ensembl-vep/vep -i output.vcf --cache /projects/AKEY/akey_vol1/software/ensembl-vep/cache --force --plugin LoF,loftee_path:/projects/AKEY/akey_vol1/software/loftee,human_ancestor_fa:/projects/AKEY/akey_vol1/software/loftee/human_ancestor.fa.gz,conservation_file:/projects/AKEY/akey_vol1/software/loftee/phylocsf_gerp.sql --dir_plugins /projects/AKEY/akey_vol1/software/ensembl-vep/cache/VEP_plugins --pick --everything --merged --offline  --dir_cache /projects/AKEY/akey_vol1/software/ensembl-vep/cache --assembly GRCh37 --fasta /projects/AKEY/akey_vol2/References/Genomes/hs37d5/hs37d5.fa --use_given_ref --tab -o trans_adjust_vep' + str(slurm_id) + '_output.txt --plugin CADD,/projects/AKEY/akey_vol1/software/ensembl-vep/cache/VEP_plugins/whole_genome_SNVs.tsv.gz --total_length'
+            vep_cmd = 'vep -i output.vcf --fasta reference_genome.fa --assembly GRCh37 --offline --force_overwrite --tab -o vep' + str(slurm_id) + '_output.txt'
             vep_run = os.system(vep_cmd)
 
 
