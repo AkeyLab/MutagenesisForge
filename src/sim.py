@@ -127,54 +127,57 @@ def create_vcf_file(input_file, output_file):
             for pos in sorted(variant_dict[chrom].keys()):
                 f.write(variant_dict[chrom][pos])
 
-def main(input_bed_file, input_mut_file, fasta_file):
-    fasta = pysam.Fastafile(fasta_file)
-    # read bed file and store the regions in an array
-    regions = []
-    with my_open(input_bed_file, 'r') as f:
-        for line in f:
-            line = line.strip()
-            regions.append(line)
-    # read mut file and find a random mutation in a random region, and write it to the output file
-    # the random mutation should match the following criteria: same trinucleotide context, random position from the bed regions, random alternative allele
-    # the output file should have the following columns: chr, pos, ref_base, before_base, after_base, alt
-    with tempfile.TemporaryDirectory() as temp_dir:
-        output_file = os.path.join(temp_dir, "output.txt")
-        vcf = os.path.join(temp_dir, "output.vcf")
-        vep = os.path.join(temp_dir, "vep_output.txt")
-        
-        with my_open(output_file, 'w') as o, my_open(input_mut_file, 'r') as f:    
-            header = f.readline().strip().split()
-            header_dict = dict(zip(header, range(len(header))))
-            chr_pos_dict = {}
+def main(input_bed_file, input_mut_file, fasta_file, sim_num):
+    for i in range(sim_num):
+        fasta = pysam.Fastafile(fasta_file)
+        # read bed file and store the regions in an array
+        regions = []
+        with my_open(input_bed_file, 'r') as f:
             for line in f:
-                if line.startswith('#'):
-                    continue
-                line = line.strip().split()
-                add_one_random_mut = False
-                chromosome = line[0]
-                position = line[1]
-                before_base, ref_base, after_base = get_trinucleotide_context(chromosome, position, fasta)
-                while not add_one_random_mut:
-                    random_chr, random_pos, ref_base, alt = get_random_mut(before_base, after_base, ref_base, regions, fasta)
-                    chr_pos = random_chr + "_" + str(random_pos)
-                    if chr_pos not in chr_pos_dict:
-                        chr_pos_dict[chr_pos] = 1
-                        add_one_random_mut = True
-                        out_line = [random_chr, str(random_pos), ref_base, before_base, after_base, alt]
-                        o.write('\t'.join([str(x) for x in out_line]) + '\n')
+                line = line.strip()
+                regions.append(line)
+        # read mut file and find a random mutation in a random region, and write it to the output file
+        # the random mutation should match the following criteria: same trinucleotide context, random position from the bed regions, random alternative allele
+        # the output file should have the following columns: chr, pos, ref_base, before_base, after_base, alt
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_file = os.path.join(temp_dir, "output.txt")
+            vcf = os.path.join(temp_dir, "output.vcf")
+            vep = os.path.join(temp_dir, "vep_output.txt")
 
-        # need to work on temp directory for vcf output (could be tricky)
-        # vcf file of info
-        with open(vcf, 'w') as f:
-            create_vcf_file(output_file, "output.vcf")
-        
-        # going to have to edit the vep string os command to file input fasta file 
-        # should be able to use argparse input varaibles
-        # issue here with directory of output file from vep call
-        with open(vep, 'w'):
-            vep_cmd = 'vep -i output.vcf --fasta reference_genome.fa --assembly GRCh37 --offline --force_overwrite --tab -o vep' + str(slurm_id) + '_output.txt'
-            vep_run = os.system(vep_cmd)
+            with my_open(output_file, 'w') as o, my_open(input_mut_file, 'r') as f:
+                header = f.readline().strip().split()
+                header_dict = dict(zip(header, range(len(header))))
+                chr_pos_dict = {}
+                for line in f:
+                    if line.startswith('#'):
+                        continue
+                    line = line.strip().split()
+                    add_one_random_mut = False
+                    chromosome = line[0]
+                    position = line[1]
+                    before_base, ref_base, after_base = get_trinucleotide_context(chromosome, position, fasta)
+                    while not add_one_random_mut:
+                        random_chr, random_pos, ref_base, alt = get_random_mut(before_base, after_base, ref_base, regions,
+                                                                           fasta)
+                        chr_pos = random_chr + "_" + str(random_pos)
+                        if chr_pos not in chr_pos_dict:
+                            chr_pos_dict[chr_pos] = 1
+                            add_one_random_mut = True
+                            out_line = [random_chr, str(random_pos), ref_base, before_base, after_base, alt]
+                            o.write('\t'.join([str(x) for x in out_line]) + '\n')
+
+            # need to work on temp directory for vcf output (could be tricky)
+            # vcf file of info
+            with open(vcf, 'w') as f:
+                create_vcf_file(output_file, "output.vcf")
+
+            # going to have to edit the vep string os command to file input fasta file
+            # should be able to use argparse input varaibles
+            # issue here with directory of output file from vep call
+            with open(vep, 'w'):
+                vep_cmd = 'vep -i output.vcf --fasta reference_genome.fa --assembly GRCh37 --offline --force_overwrite --tab -o vep' + str(
+                    sim_num) + '_output.txt'
+                vep_run = os.system(vep_cmd)
 
 
 if __name__ == '__main__':
@@ -193,7 +196,7 @@ if __name__ == '__main__':
             '--output', '---output', type=str, required=True, dest='output',
             help='Output table of variants; may be gzipped')
     parser.add_argument(
-            '--id', '-id', type=int, required=False, default = 0, help='helper variable for parallel')
+            '--sim_count', '-sim_count', type=int, required=True, default = 0, help='Number of simulations to be run')
 
     args = parser.parse_args()
 
@@ -201,6 +204,6 @@ if __name__ == '__main__':
     input_mut_file = args.input_mut
     fasta_file = args.fasta
     output_file = args.output
-    slurm_id = args.id
+    sim_num = args.sim_count
 
-    main(input_bed_file, input_mut_file, fasta_file)
+    main(input_bed_file, input_mut_file, fasta_file, sim_num)
