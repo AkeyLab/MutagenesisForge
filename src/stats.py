@@ -1,10 +1,15 @@
 import os
+import argparse
+import glob
+
 # return ratio of non-synonymous to synonymous substitutions
 
 # give a measure of strength of natural selection
-directory_path = ""
+directory_path = os.getcwd()
 
-vep_files = os.listdir(directory_path)
+pattern = 'vep*'
+
+vep_files = glob.glob(os.path.join(directory_path, pattern))
 
 def dnds(veps):
     syn = 0
@@ -22,4 +27,18 @@ def dnds(veps):
                     non_syn += 1
     ratio = non_syn / syn
     return(ratio)
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument(
+            '--stat', '-stat', type=str, required=True,
+            help='statistical test to perform')
+    
+    args = parser.parse_args()
+
+    stat_test = args.stat
+
+    if stat_test == 'dnds':
+        dnds(vep_files)
 
