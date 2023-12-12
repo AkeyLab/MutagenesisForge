@@ -13,8 +13,7 @@ rule sim:
         fasta=config['fasta'],
         sims=config['sims']
     output:
-        expand("vep_output_{index}.txt", index=range(1, lambda wildcards: params.num_output_files + 1))
-        # "vep.output"
+        output_files=dynamic(lambda wildcards: ["vep_output_{}.txt".format(i) for i in range(1, int(wildcards.params.sims) + 1)])
     shell:
         "src/sim.py --fasta {params.fasta} --input_bed {params.bed} --input_mut {params.vcf}, --sim_count {params.sims}"
 
@@ -26,7 +25,7 @@ rule stats:
     params:
         stat=config['stat']
     output:
-        "stats.txt"
+        "stats_{params.stat}.txt"
     shell:
         "src/stats.py --stat {params.stat}"
 

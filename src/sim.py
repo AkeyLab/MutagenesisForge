@@ -175,7 +175,7 @@ def main(input_bed_file, input_mut_file, fasta_file, sim_num):
             # should be able to use argparse input varaibles
             # issue here with directory of output file from vep call
             with open(vep, 'w'):
-                vep_cmd = 'vep -i output.vcf --fasta reference_genome.fa --assembly GRCh37 --offline --force_overwrite --tab -o vep' + str(
+                vep_cmd = 'vep -i output.vcf --fasta reference_genome.fa --assembly GRCh38 --offline --force_overwrite --tab -o vep' + str(
                     sim_num) + '_output.txt'
                 vep_run = os.system(vep_cmd)
 
