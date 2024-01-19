@@ -3,6 +3,7 @@ import gzip
 import math
 import pysam
 import numpy as np
+import os
 
 
 
@@ -14,6 +15,21 @@ def my_open(filename: str, mode: str):
         open_file = open(filename, mode)
     yield open_file
     open_file.close()
+
+
+def get_trinucleotide_context(chromosomem, position, fasta_file):
+    # Open the FASTA file
+    with pysam.FastaFile(fasta_file) as fastafile:
+        # Get the allele at the specified position
+        allele_at_position = fastafile.fetch(chrom, pos - 1, pos)
+
+        # Get the allele at the position before
+        allele_before_position = fastafile.fetch(chrom, pos - 2, pos - 1)
+
+        # Get the allele at the position after
+        allele_after_position = fastafile.fetch(chrom, pos, pos + 1)
+
+    return allele_before_position, allele_at_position, allele_after_position
 
 
 def get_base(fasta, chrom: str, position: str):
