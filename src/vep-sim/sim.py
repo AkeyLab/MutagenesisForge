@@ -4,7 +4,7 @@ import math
 import pysam
 import numpy as np
 import os
-
+from collections import defaultdict
 
 
 def my_open(filename: str, mode: str):
