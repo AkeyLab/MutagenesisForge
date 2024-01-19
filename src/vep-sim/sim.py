@@ -129,7 +129,7 @@ def create_vcf_file(input_file, output_file):
                 f.write(variant_dict[chrom][pos])
 
 
-def main(input_bed_file, input_mut_file, fasta_file, sim_num):
+def sim(input_bed_file, input_mut_file, fasta_file, sim_num):
     for i in range(sim_num):
         fasta = pysam.Fastafile(fasta_file)
         # read bed file and store the regions in an array
