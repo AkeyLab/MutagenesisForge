@@ -21,6 +21,7 @@ os = "*"
 collections = "*"
 tempfile = "*"
 pyfaidx = "*"
+click = "*"
 
 [tool.poetry.dev-dependencies]
 

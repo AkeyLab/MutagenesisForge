@@ -1,12 +1,12 @@
 from contextlib import contextmanager
 import gzip
-import math
 import pysam
 import numpy as np
 import os
 from collections import defaultdict
+import tempfile
 
-
+@contextmanager
 def my_open(filename: str, mode: str):
     '''A wrapper for open/gzip.open logic as a context manager'''
     if filename.endswith('.gz'):
@@ -17,7 +17,7 @@ def my_open(filename: str, mode: str):
     open_file.close()
 
 
-def get_trinucleotide_context(chromosomem, position, fasta_file):
+def get_trinucleotide_context(chrom, pos, fasta_file):
     # Open the FASTA file
     with pysam.FastaFile(fasta_file) as fastafile:
         # Get the allele at the specified position
@@ -73,6 +73,7 @@ def get_random_mut(before_base, after_base, ref_base, regions, fasta):
     #regions is an array of strings, each string is a region in the bed file
     #return a random mutation in a random region, and the mutation should match the following criteria: same trinucleotide context, random position from the bed regions, random alternative allele
     #return a tuple of (chr, pos, ref, alt)
+    #proabilities account for transverstion-transition bias
 
     # get a random position from the regions
     is_wanted = False
@@ -177,6 +178,8 @@ def sim(input_bed_file, input_mut_file, fasta_file, sim_num):
             # should be able to use argparse input varaibles
             # issue here with directory of output file from vep call
             with open(vep, 'w'):
-                vep_cmd = 'vep -i output.vcf --fasta reference_genome.fa --assembly GRCh38 --offline --force_overwrite --tab -o vep' + str(
+                vep_cmd = "Use vep command here with user locations of vep and fasta file"
+                '''vep -i output.vcf --fasta reference_genome.fa --assembly GRCh38 --offline --force_overwrite --tab -o vep' + str(
                     sim_num) + '_output.txt'
+                    '''
                 vep_run = os.system(vep_cmd)
