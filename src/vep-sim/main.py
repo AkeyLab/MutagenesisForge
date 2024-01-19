@@ -8,7 +8,7 @@ from scipy import stats
 @click.command()
 @click.option('--input_bed_file', help='Input bed file')
 @click.option('--input_mut_file', help='Input mut file')
-@click.option('--fasta_file', help='Fasta file')
+@click.option('--fasta_file', help='Input fasta file')
 @click.option('--sim_num', type = int, default = 10, help='Number of simulations')
 
 def main(input_bed_file, input_mut_file, fasta_file, sim_num):
@@ -18,15 +18,17 @@ def main(input_bed_file, input_mut_file, fasta_file, sim_num):
     empirical_vep = ""
     emp_run = os.system(empirical_vep)
 
-    # vep output files
-    sim_veps = []
+    # group vep output files
+    sim_veps = [] 
+
+    # dn/ds for grouped vep output files
     sim_total_dNds = stat.total_dNds(sim_veps)
 
     # empirical vep output files
     emp_veps = []
     emp_total_dNds = stat.total_dNds(emp_veps)
 
-    # individual vep output file dn/ds
+    # individual vep output files dn/ds
     ind_sim_dNds = []
     for vep in sim_veps:
         ind_sim_dNds.append(stat.dNds(vep))
