@@ -1,6 +1,7 @@
 import pandas as pd
 from io import StringIO
 
+
 def synoymous_detected(line):
     """Return True if the variant is synonymous."""
     df = pd.read_csv(StringIO(line), sep='\t')

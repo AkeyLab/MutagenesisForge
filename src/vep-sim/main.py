@@ -4,6 +4,19 @@ import os
 import click
 import numpy as np
 from scipy import stats
+import yaml
+
+# load parameters
+def load_params():
+    with open("params.yaml", "r") as f:
+        params = yaml.safe_load(f)
+    return params
+
+parameters = load_params('parameters.yaml')
+
+# access parameters
+emp_vep_path = parameters.get('emp_vep_path')
+
 
 @click.command()
 @click.option('--input_bed_file', help='Input bed file')
@@ -14,9 +27,8 @@ from scipy import stats
 def main(input_bed_file, input_mut_file, fasta_file, sim_num):
     sim.sim(input_bed_file, input_mut_file, fasta_file, sim_num)
 
-    # empirical vep output
-    empirical_vep = ""
-    emp_run = os.system(empirical_vep)
+    # empirical vep output with yaml file
+    emp_run = os.system(vep_path)
 
     # group vep output files
     sim_veps = [] 
