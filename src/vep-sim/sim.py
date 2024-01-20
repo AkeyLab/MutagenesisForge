@@ -5,6 +5,7 @@ import numpy as np
 import os
 from collections import defaultdict
 import tempfile
+import yaml
 
 @contextmanager
 def my_open(filename: str, mode: str):
@@ -15,6 +16,16 @@ def my_open(filename: str, mode: str):
         open_file = open(filename, mode)
     yield open_file
     open_file.close()
+
+
+def load_parameter_from_yaml(file_path, parameter_name):
+    with open(file_path, 'r') as file:
+        params = yaml.safe_load(file)
+        if parameter_name in params:
+            return params[parameter_name]
+        else:
+            print(f"Parameter '{parameter_name}' not found in {file_path}")
+            return None
 
 
 def get_trinucleotide_context(chrom, pos, fasta_file):
@@ -178,8 +189,7 @@ def sim(input_bed_file, input_mut_file, fasta_file, sim_num):
             # should be able to use argparse input varaibles
             # issue here with directory of output file from vep call
             with open(vep, 'w'):
-                vep_cmd = "Use vep command here with user locations of vep and fasta file"
-                '''vep -i output.vcf --fasta reference_genome.fa --assembly GRCh38 --offline --force_overwrite --tab -o vep' + str(
-                    sim_num) + '_output.txt'
-                    '''
+                parameters = load_parameter_from_yaml('parameters.yaml')
+                sim_vep_path = parameters.get('sim_vep_path')
+                vep_cmd = sim_vep_path + str(sim_num) + ".out"
                 vep_run = os.system(vep_cmd)

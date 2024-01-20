@@ -6,15 +6,18 @@ import numpy as np
 from scipy import stats
 import yaml
 
-# load parameters
-def load_params():
-    with open("params.yaml", "r") as f:
-        params = yaml.safe_load(f)
-    return params
-
-parameters = load_params('parameters.yaml')
+def load_parameter_from_yaml(file_path, parameter_name):
+    with open(file_path, 'r') as file:
+        params = yaml.safe_load(file)
+        if parameter_name in params:
+            return params[parameter_name]
+        else:
+            print(f"Parameter '{parameter_name}' not found in {file_path}")
+            return None
+        
 
 # access parameters
+parameters = load_parameter_from_yaml('parameters.yaml')
 emp_vep_path = parameters.get('emp_vep_path')
 
 
@@ -28,7 +31,7 @@ def main(input_bed_file, input_mut_file, fasta_file, sim_num):
     sim.sim(input_bed_file, input_mut_file, fasta_file, sim_num)
 
     # empirical vep output with yaml file
-    emp_run = os.system(vep_path)
+    emp_run = os.system(emp_vep_path)
 
     # group vep output files
     sim_veps = [] 
