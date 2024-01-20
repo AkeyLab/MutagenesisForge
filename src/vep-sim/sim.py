@@ -191,5 +191,6 @@ def sim(input_bed_file, input_mut_file, fasta_file, sim_num):
             with open(vep, 'w'):
                 parameters = load_parameter_from_yaml('parameters.yaml')
                 sim_vep_path = parameters.get('sim_vep_path')
-                vep_cmd = sim_vep_path + str(sim_num) + ".out"
+                sim_output_path = parameters.get('sim_output_path')
+                vep_cmd = sim_vep_path + sim_output_path + str(sim_num) + ".out"
                 vep_run = os.system(vep_cmd)

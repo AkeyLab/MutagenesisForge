@@ -15,6 +15,14 @@ def load_parameter_from_yaml(file_path, parameter_name):
             print(f"Parameter '{parameter_name}' not found in {file_path}")
             return None
         
+# apply this function to the directory of vep output files for statistical analysis
+def find_files_with_prefix(directory, prefix):
+    matching_files = []
+    for filename in os.listdir(directory):
+        if filename.startswith(prefix):
+            matching_files.append(filename)
+    return matching_files
+        
 
 # access parameters
 parameters = load_parameter_from_yaml('parameters.yaml')

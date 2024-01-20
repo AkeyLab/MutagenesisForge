@@ -3,7 +3,9 @@
 # emp is used in main.py and sim is used in sim.py
 
 emp_vep_path: "insert vep call syntax here"
+emp_output_path: "insert path to shell empirical data here"
 
 # Path to the vep cache shell
 # example usage: vep_cache_path: ""
 sim_vep_path: "insert vep call syntax here"
+sim_output_path: "insert path to shell simulated data here"
