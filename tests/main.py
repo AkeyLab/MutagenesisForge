@@ -19,6 +19,8 @@ def find_files_with_prefix(prefix, directory = load_parameter_from_yaml('paramet
 # access parameters
 parameters = load_parameter_from_yaml('parameters.yaml')
 emp_vep_path = parameters.get('emp_vep_path')
+sim_vep_path = parameters.get('sim_vep_path')
+output_dir = parameters.get('output_dir')
 
 
 @click.command()
@@ -50,16 +52,18 @@ def main(input_bed_file, input_mut_file, fasta_file, sim_num, out):
     sim.sim(input_bed_file, input_mut_file, fasta_file, sim_num, out)
 
     # empirical vep output with yaml file
-    emp_run = os.system(emp_vep_path)
+    emp_output = output_dir + "/" + "emp" + out + ".out"
+    emp_cmd = emp_vep_path + emp_output
+    emp_run = os.system(emp_cmd)
 
     # group vep output files
-    sim_veps = [] 
+    sim_veps = find_files_with_prefix("sim")
 
     # dn/ds for grouped vep output files
     sim_total_dNds = stat.total_dNds(sim_veps)
 
     # empirical vep output files
-    emp_veps = []
+    emp_veps = find_files_with_prefix("emp")
     emp_total_dNds = stat.total_dNds(emp_veps)
 
     # individual vep output files dn/ds
