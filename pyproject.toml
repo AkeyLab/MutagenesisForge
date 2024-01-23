@@ -11,18 +11,10 @@ authors = ["Cooper Koers ck5658@princeton.edu"]
 [tool.poetry.dependencies]
 python = "^3.8"
 pyyaml = "^5.4"
-sys = "*"
-numpy = "*"
-gzip = "*"
-math = "*"
-argparse = "*"
-contextlib = "*"
 pysam = "*"
-os = "*"
-collections = "*"
-tempfile = "*"
 pyfaidx = "*"
 click = "*"
+pandas = "*"
 
 [tool.poetry.dev-dependencies]
 
