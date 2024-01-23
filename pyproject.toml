@@ -27,3 +27,4 @@ click = "*"
 [tool.poetry.dev-dependencies]
 
 [tool.poetry.scripts]
+vep-sim = "vep-sim.main:main"

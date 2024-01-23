@@ -4,16 +4,8 @@ import os
 import click
 import numpy as np
 from scipy import stats
-import yaml
+from utils import load_parameter_from_yaml
 
-def load_parameter_from_yaml(file_path, parameter_name):
-    with open(file_path, 'r') as file:
-        params = yaml.safe_load(file)
-        if parameter_name in params:
-            return params[parameter_name]
-        else:
-            print(f"Parameter '{parameter_name}' not found in {file_path}")
-            return None
         
 # apply this function to the directory of vep output files for statistical analysis
 def find_files_with_prefix(directory, prefix):
@@ -30,10 +22,25 @@ emp_vep_path = parameters.get('emp_vep_path')
 
 
 @click.command()
-@click.option('--input_bed_file', help='Input bed file')
-@click.option('--input_mut_file', help='Input mut file')
-@click.option('--fasta_file', help='Input fasta file')
-@click.option('--sim_num', type = int, default = 10, help='Number of simulations')
+# need to account for optional bed input
+@click.option(
+    '--input_bed_file',
+    help='Input bed file',
+    )
+@click.option(
+    '--input_mut_file', 
+    help='Input mut file'
+    )
+@click.option(
+    '--fasta_file', 
+    help='Input fasta file'
+    )
+@click.option(
+    '--sim_num', 
+    type = int, 
+    default = 10, 
+    help='Number of simulations'
+    )
 
 def main(input_bed_file, input_mut_file, fasta_file, sim_num):
     sim.sim(input_bed_file, input_mut_file, fasta_file, sim_num)

@@ -5,7 +5,7 @@ import numpy as np
 import os
 from collections import defaultdict
 import tempfile
-import yaml
+from utils import load_parameter_from_yaml
 
 @contextmanager
 def my_open(filename: str, mode: str):
@@ -16,16 +16,6 @@ def my_open(filename: str, mode: str):
         open_file = open(filename, mode)
     yield open_file
     open_file.close()
-
-
-def load_parameter_from_yaml(file_path, parameter_name):
-    with open(file_path, 'r') as file:
-        params = yaml.safe_load(file)
-        if parameter_name in params:
-            return params[parameter_name]
-        else:
-            print(f"Parameter '{parameter_name}' not found in {file_path}")
-            return None
 
 
 def get_trinucleotide_context(chrom, pos, fasta_file):
