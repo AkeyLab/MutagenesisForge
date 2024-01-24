@@ -8,7 +8,7 @@ from utils import load_parameter_from_yaml
 
         
 # apply this function to the directory of vep output files for statistical analysis
-def find_files_with_prefix(directory, prefix):
+def find_files_with_prefix(prefix, directory = load_parameter_from_yaml('parameters.yaml').get('output_dir')):
     matching_files = []
     for filename in os.listdir(directory):
         if filename.startswith(prefix):
@@ -19,21 +19,23 @@ def find_files_with_prefix(directory, prefix):
 # access parameters
 parameters = load_parameter_from_yaml('parameters.yaml')
 emp_vep_path = parameters.get('emp_vep_path')
+sim_vep_path = parameters.get('sim_vep_path')
+output_dir = parameters.get('output_dir')
 
 
 @click.command()
 # need to account for optional bed input
-@click.option(
+@click.argument(
     '--input_bed_file',
     help='Input bed file',
     )
-@click.option(
+@click.argument(
     '--input_mut_file', 
     help='Input mut file'
     )
-@click.option(
+@click.argument(
     '--fasta_file', 
-    help='Input fasta file'
+    help='Input reference fasta file'
     )
 @click.option(
     '--sim_num', 
@@ -41,21 +43,27 @@ emp_vep_path = parameters.get('emp_vep_path')
     default = 10, 
     help='Number of simulations'
     )
+@click.argument(
+    '--out',
+    help='Output file name designated by user'
+    )
 
-def main(input_bed_file, input_mut_file, fasta_file, sim_num):
-    sim.sim(input_bed_file, input_mut_file, fasta_file, sim_num)
+def main(input_bed_file, input_mut_file, fasta_file, sim_num, out):
+    sim.sim(input_bed_file, input_mut_file, fasta_file, sim_num, out)
 
     # empirical vep output with yaml file
-    emp_run = os.system(emp_vep_path)
+    emp_output = output_dir + "/" + "emp" + out + ".out"
+    emp_cmd = emp_vep_path + emp_output
+    emp_run = os.system(emp_cmd)
 
     # group vep output files
-    sim_veps = [] 
+    sim_veps = find_files_with_prefix("sim")
 
     # dn/ds for grouped vep output files
     sim_total_dNds = stat.total_dNds(sim_veps)
 
     # empirical vep output files
-    emp_veps = []
+    emp_veps = find_files_with_prefix("emp")
     emp_total_dNds = stat.total_dNds(emp_veps)
 
     # individual vep output files dn/ds

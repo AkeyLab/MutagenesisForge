@@ -131,7 +131,7 @@ def create_vcf_file(input_file, output_file):
                 f.write(variant_dict[chrom][pos])
 
 
-def sim(input_bed_file, input_mut_file, fasta_file, sim_num):
+def sim(input_bed_file, input_mut_file, fasta_file, sim_num, output):
     for i in range(sim_num):
         fasta = pysam.Fastafile(fasta_file)
         # read bed file and store the regions in an array
@@ -144,11 +144,11 @@ def sim(input_bed_file, input_mut_file, fasta_file, sim_num):
         # the random mutation should match the following criteria: same trinucleotide context, random position from the bed regions, random alternative allele
         # the output file should have the following columns: chr, pos, ref_base, before_base, after_base, alt
         with tempfile.TemporaryDirectory() as temp_dir:
-            output_file = os.path.join(temp_dir, "output.txt")
+            output_raw_file = os.path.join(temp_dir, "output.txt")
             vcf = os.path.join(temp_dir, "output.vcf")
             vep = os.path.join(temp_dir, "vep_output.txt")
 
-            with my_open(output_file, 'w') as o, my_open(input_mut_file, 'r') as f:
+            with my_open(output_raw_file, 'w') as o, my_open(input_mut_file, 'r') as f:
                 header = f.readline().strip().split()
                 header_dict = dict(zip(header, range(len(header))))
                 chr_pos_dict = {}
@@ -173,14 +173,13 @@ def sim(input_bed_file, input_mut_file, fasta_file, sim_num):
             # need to work on temp directory for vcf output (could be tricky)
             # vcf file of info
             with open(vcf, 'w') as f:
-                create_vcf_file(output_file, "output.vcf")
+                create_vcf_file(output_raw_file, "output.vcf")
 
             # going to have to edit the vep string os command to file input fasta file
             # should be able to use argparse input varaibles
             # issue here with directory of output file from vep call
             with open(vep, 'w'):
-                parameters = load_parameter_from_yaml('parameters.yaml')
-                sim_vep_path = parameters.get('sim_vep_path')
-                sim_output_path = parameters.get('sim_output_path')
-                vep_cmd = sim_vep_path + sim_output_path + str(sim_num) + ".out"
+                sim_vep_path = load_parameter_from_yaml('parameters.yaml').get('sim_vep_path')
+                sim_output = load_parameter_from_yaml('parameters.yaml').get('output_dir') + "/" + "sim" + str(sim_num) + output + ".out"
+                vep_cmd = sim_vep_path + sim_output
                 vep_run = os.system(vep_cmd)

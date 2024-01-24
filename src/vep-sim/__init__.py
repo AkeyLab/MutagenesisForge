@@ -1,2 +1,2 @@
-print("Initializing vep-sim...")
+print("Initializing test vep-sim...")
 
