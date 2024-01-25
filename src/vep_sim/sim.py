@@ -5,7 +5,7 @@ import numpy as np
 import os
 from collections import defaultdict
 import tempfile
-from utils import load_parameter_from_yaml
+from .utils import load_parameter_from_yaml
 
 @contextmanager
 def my_open(filename: str, mode: str):

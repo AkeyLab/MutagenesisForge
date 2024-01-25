@@ -4,7 +4,7 @@ import os
 import click
 import numpy as np
 from scipy import stats
-from utils import load_parameter_from_yaml
+from .utils import load_parameter_from_yaml
 
         
 # apply this function to the directory of vep output files for statistical analysis
