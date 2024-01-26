@@ -33,10 +33,9 @@ output_dir = load_parameter_from_yaml('parameters.yaml', 'output_dir')
 @click.argument(
     '--fasta_file', 
     )
-@click.option(
+@click.argument(
     '--sim_num', 
     type = int, 
-    default = 10, 
     )
 @click.argument(
     '--out',
