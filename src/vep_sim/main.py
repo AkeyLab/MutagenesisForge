@@ -26,25 +26,20 @@ output_dir = load_parameter_from_yaml('parameters.yaml', 'output_dir')
 # need to account for optional bed input
 @click.argument(
     '--input_bed_file',
-    help='Input bed file',
     )
 @click.argument(
     '--input_mut_file', 
-    help='Input mut file'
     )
 @click.argument(
     '--fasta_file', 
-    help='Input reference fasta file'
     )
 @click.option(
     '--sim_num', 
     type = int, 
     default = 10, 
-    help='Number of simulations'
     )
 @click.argument(
     '--out',
-    help='Output file name designated by user'
     )
 
 def main(input_bed_file, input_mut_file, fasta_file, sim_num, out):
