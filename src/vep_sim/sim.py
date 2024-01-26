@@ -159,7 +159,7 @@ def sim(input_bed_file, input_mut_file, fasta_file, sim_num, output):
                     add_one_random_mut = False
                     chromosome = line[0]
                     position = line[1]
-                    before_base, ref_base, after_base = get_trinucleotide_context(chromosome, position, fasta)
+                    before_base, ref_base, after_base = get_trinucleotide_context(chromosome, position, str(fasta))
                     while not add_one_random_mut:
                         random_chr, random_pos, ref_base, alt = get_random_mut(before_base, after_base, ref_base, regions,
                                                                            fasta)
