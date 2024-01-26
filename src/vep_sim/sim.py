@@ -179,7 +179,7 @@ def sim(input_bed_file, input_mut_file, fasta_file, sim_num, output):
             # should be able to use argparse input varaibles
             # issue here with directory of output file from vep call
             with open(vep, 'w'):
-                sim_vep_path = load_parameter_from_yaml('parameters.yaml').get('sim_vep_path')
-                sim_output = load_parameter_from_yaml('parameters.yaml').get('output_dir') + "/" + "sim" + str(sim_num) + output + ".out"
+                sim_vep_path = load_parameter_from_yaml('parameters.yaml', 'sim_vep_path')
+                sim_output = load_parameter_from_yaml('parameters.yaml', 'output_dir') + "/" + "sim" + str(sim_num) + output + ".out"
                 vep_cmd = sim_vep_path + sim_output
                 vep_run = os.system(vep_cmd)

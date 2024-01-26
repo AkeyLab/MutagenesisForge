@@ -8,7 +8,7 @@ from .utils import load_parameter_from_yaml
 
         
 # apply this function to the directory of vep output files for statistical analysis
-def find_files_with_prefix(prefix, directory = load_parameter_from_yaml('parameters.yaml').get('output_dir')):
+def find_files_with_prefix(prefix, directory = load_parameter_from_yaml('parameters.yaml', 'output_dir')):
     matching_files = []
     for filename in os.listdir(directory):
         if filename.startswith(prefix):
@@ -16,11 +16,10 @@ def find_files_with_prefix(prefix, directory = load_parameter_from_yaml('paramet
     return matching_files
         
 
-# access parameters
-parameters = load_parameter_from_yaml('parameters.yaml')
-emp_vep_path = parameters.get('emp_vep_path')
-sim_vep_path = parameters.get('sim_vep_path')
-output_dir = parameters.get('output_dir')
+# access parameters from yaml file
+emp_vep_path = load_parameter_from_yaml('parameters.yaml', 'emp_vep_path')
+sim_vep_path = load_parameter_from_yaml('parameters.yaml', 'sim_vep_path')
+output_dir = load_parameter_from_yaml('parameters.yaml', 'output_dir')
 
 
 @click.command()
