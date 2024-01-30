@@ -1,9 +1,11 @@
-transition = ['AG', 'GA', 'CT', 'TC']
-transversion = ['AC', 'CA', 'AT', 'TA', 'GC', 'CG', 'GT', 'TG']
+def tstv(vcf):
 
-def local(vcf):
+    transition = ['AG', 'GA', 'CT', 'TC']
+    transversion = ['AC', 'CA', 'AT', 'TA', 'GC', 'CG', 'GT', 'TG']
+
     transition_count = 0
     transversion_count = 0
+    
     with open(vcf, 'r') as f:
         for line in f:
             if line.startswith('#'):
