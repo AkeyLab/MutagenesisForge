@@ -1,164 +1,170 @@
-# need to overhall this to support fasta files not in exact format of the one I downloaded from NCBI
-
 import collections
 import gzip
 import pysam
 import pandas as pd
 
-# codon to amino acid table
-codon_to_amino = {
-    'TTT': 'F', 'TTC': 'F', 'TTA': 'L', 'TTG': 'L',
-    'CTT': 'L', 'CTC': 'L', 'CTA': 'L', 'CTG': 'L',
-    'ATT': 'I', 'ATC': 'I', 'ATA': 'I', 'ATG': 'M',
-    'GTT': 'V', 'GTC': 'V', 'GTA': 'V', 'GTG': 'V',
-    'TCT': 'S', 'TCC': 'S', 'TCA': 'S', 'TCG': 'S',
-    'CCT': 'P', 'CCC': 'P', 'CCA': 'P', 'CCG': 'P',
-    'ACT': 'T', 'ACC': 'T', 'ACA': 'T', 'ACG': 'T',
-    'GCT': 'A', 'GCC': 'A', 'GCA': 'A', 'GCG': 'A',
-    'TAT': 'Y', 'TAC': 'Y', 'TAA': '*', 'TAG': '*',
-    'CAT': 'H', 'CAC': 'H', 'CAA': 'Q', 'CAG': 'Q',
-    'AAT': 'N', 'AAC': 'N', 'AAA': 'K', 'AAG': 'K',
-    'GAT': 'D', 'GAC': 'D', 'GAA': 'E', 'GAG': 'E',
-    'TGT': 'C', 'TGC': 'C', 'TGA': '*', 'TGG': 'W',
-    'CGT': 'R', 'CGC': 'R', 'CGA': 'R', 'CGG': 'R',
-    'AGT': 'S', 'AGC': 'S', 'AGA': 'R', 'AGG': 'R',
-    'GGT': 'G', 'GGC': 'G', 'GGA': 'G', 'GGG': 'G'
-}
+def exhaustive(path):
+    # need to overhall this to support fasta files not in exact format of the one I downloaded from NCBI
 
-# Precalculate the synonymous, missense, and nonsense counts for all mutations of each codon at each position
-synonymous_muts_per_codon = {}
-missense_muts_per_codon = {}
-nonsense_muts_per_codon = {}
+    # codon to amino acid table
+    codon_to_amino = {
+        'TTT': 'F', 'TTC': 'F', 'TTA': 'L', 'TTG': 'L',
+        'CTT': 'L', 'CTC': 'L', 'CTA': 'L', 'CTG': 'L',
+        'ATT': 'I', 'ATC': 'I', 'ATA': 'I', 'ATG': 'M',
+        'GTT': 'V', 'GTC': 'V', 'GTA': 'V', 'GTG': 'V',
+        'TCT': 'S', 'TCC': 'S', 'TCA': 'S', 'TCG': 'S',
+        'CCT': 'P', 'CCC': 'P', 'CCA': 'P', 'CCG': 'P',
+        'ACT': 'T', 'ACC': 'T', 'ACA': 'T', 'ACG': 'T',
+        'GCT': 'A', 'GCC': 'A', 'GCA': 'A', 'GCG': 'A',
+        'TAT': 'Y', 'TAC': 'Y', 'TAA': '*', 'TAG': '*',
+        'CAT': 'H', 'CAC': 'H', 'CAA': 'Q', 'CAG': 'Q',
+        'AAT': 'N', 'AAC': 'N', 'AAA': 'K', 'AAG': 'K',
+        'GAT': 'D', 'GAC': 'D', 'GAA': 'E', 'GAG': 'E',
+        'TGT': 'C', 'TGC': 'C', 'TGA': '*', 'TGG': 'W',
+        'CGT': 'R', 'CGC': 'R', 'CGA': 'R', 'CGG': 'R',
+        'AGT': 'S', 'AGC': 'S', 'AGA': 'R', 'AGG': 'R',
+        'GGT': 'G', 'GGC': 'G', 'GGA': 'G', 'GGG': 'G'
+    }
 
-bases = {'A','C','G','T'}
-positions = [0, 1, 2]
+    # Precalculate the synonymous, missense, and nonsense counts for all mutations of each codon at each position
+    synonymous_muts_per_codon = {}
+    missense_muts_per_codon = {}
+    nonsense_muts_per_codon = {}
 
-#iterate through all 64 codons
-for codon in codon_to_amino:
-    num_synonymous_muts = 0
-    num_missense_muts = 0
-    num_nonsense_muts = 0
-    
-    #iterate through all 3 positions in each codon
-    for pos in positions:
-        base = codon[pos]
-        amino = codon_to_amino[codon]
-        possible_mutations = bases.difference(base)
+    bases = {'A','C','G','T'}
+    positions = [0, 1, 2]
+
+    #iterate through all 64 codons
+    for codon in codon_to_amino:
+        num_synonymous_muts = 0
+        num_missense_muts = 0
+        num_nonsense_muts = 0
         
-        #iterate through all 3 possible mutations of the base at the current position
-        for mutated_base in possible_mutations:
-            mutated_codon = codon[:pos]+mutated_base+codon[pos+1:]
-            mutated_amino = codon_to_amino[mutated_codon]
+        #iterate through all 3 positions in each codon
+        for pos in positions:
+            base = codon[pos]
+            amino = codon_to_amino[codon]
+            possible_mutations = bases.difference(base)
             
-            #assign the mutation to be nonsense/missense/synonymous
-            if mutated_amino == '*':
-                num_nonsense_muts += 1
-            elif amino != mutated_amino:
-                num_missense_muts += 1
-            else:
-                num_synonymous_muts += 1
+            #iterate through all 3 possible mutations of the base at the current position
+            for mutated_base in possible_mutations:
+                mutated_codon = codon[:pos]+mutated_base+codon[pos+1:]
+                mutated_amino = codon_to_amino[mutated_codon]
                 
-                
-            #print(f'orig_codon={codon}, mutated_codon={mutated_codon}, orig_amino={amino}, mut_amino={mutated_amino}')
-    
-    #store the number of each type of mutation for this codon
-    synonymous_muts_per_codon[codon] = num_synonymous_muts
-    missense_muts_per_codon[codon] = num_missense_muts
-    nonsense_muts_per_codon[codon] = num_nonsense_muts
+                #assign the mutation to be nonsense/missense/synonymous
+                if mutated_amino == '*':
+                    num_nonsense_muts += 1
+                elif amino != mutated_amino:
+                    num_missense_muts += 1
+                else:
+                    num_synonymous_muts += 1
+                    
+                    
+                #print(f'orig_codon={codon}, mutated_codon={mutated_codon}, orig_amino={amino}, mut_amino={mutated_amino}')
         
+        #store the number of each type of mutation for this codon
+        synonymous_muts_per_codon[codon] = num_synonymous_muts
+        missense_muts_per_codon[codon] = num_missense_muts
+        nonsense_muts_per_codon[codon] = num_nonsense_muts
+            
 
-#load the cDNA fasta file from NCBI
-#Downloaded the per-gene transcript 
-#wget https://ftp.ncbi.nlm.nih.gov/refseq/H_sapiens/annotation/GRCh37_latest/refseq_identifiers/GRCh37_latest_rna.fna.gz
-path = "/scratch/gpfs/AKEY/rbierman/gene_mutation_missense_synon_nonsense/gencode.v44lift37.pc_transcripts.fa"
-fasta = pysam.FastaFile(path)
+    #load the cDNA fasta file from NCBI
+    #Downloaded the per-gene transcript 
+    #wget https://ftp.ncbi.nlm.nih.gov/refseq/H_sapiens/annotation/GRCh37_latest/refseq_identifiers/GRCh37_latest_rna.fna.gz
+    
+    fasta = pysam.FastaFile(path)
 
-data = {
-    'ensg':[],
-    'enst':[],
-    'gene_name':[],
-    'has_ATG_start':[],
-    'stop_codon_end':[],
-    'cds_length':[],
-    'num_codons':[],
-    'num_synonymous':[],
-    'num_missense':[],
-    'num_nonsense':[],
-}
+    data = {
+        'ensg':[],
+        'enst':[],
+        'gene_name':[],
+        'has_ATG_start':[],
+        'stop_codon_end':[],
+        'cds_length':[],
+        'num_codons':[],
+        'num_synonymous':[],
+        'num_missense':[],
+        'num_nonsense':[],
+    }
 
-for ref in fasta.references:
-    # fetching gene coding region data
-    seq = fasta.fetch(ref)
-    ref_data = ref.split('|')
-    enst = ref_data[0]
-    ensg = ref_data[1]
-    gene_name = ref_data[5]
-    transcript_length = int(ref_data[6])
-    
-    # string manipulation to isolate end and start of cds
-    cds = [s for s in ref_data if s.startswith("CDS:")]
-    start, end = cds[0].split(':')[1].split('-')
-    # type converstion to int
-    start = int(start)
-    end = int(end)
-    cds_seq = seq[start-1:end]
-    
-    #sanity checks
-    #- the cDNA seq length should divisible by 3
-    #- the first codon should be ATG
-    #- the last should be a stop codon (TAA, TGA, TAG)
-    #assert len(cds_seq)%3 == 0                 #actually it seems like this isn't always true somehow
-    #assert cds_seq[:3] == 'ATG'                #same with this
-    #assert cds_seq[-3:] in {'TAA','TGA','TAG'} #same with this
-    
-    has_atg_start = False
-    if cds_seq[:3] == "ATG":
-        has_atg_start = True
-    
-    stop_codons = ["TAA", "TGA", "TAG"]
-    stop_codon_end = False
-    if cds_seq[-3:] in stop_codons:
-        stop_codon_end = True
-    
-    
-    #count how many of each type of codon there are
-    codon_frequency = collections.Counter(cds_seq[i:i+3] for i in range(0, len(cds_seq), 3))
-    
-    #remove "codons" that are less than 3 basepairs (I don't know why the transcript lens aren't all div by 3)
-    codon_frequency = {codon:count for codon,count in codon_frequency.items() if len(codon) == 3}
-    
-    #use the pre-calculated counts of synonymous/missense/nonsense per codon to count total mutations
-    num_synonymous = sum(
-        synonymous_muts_per_codon[codon]*count
-        for codon,count in codon_frequency.items()
-    )
-    
-    num_missense = sum(
-        missense_muts_per_codon[codon]*count
-        for codon,count in codon_frequency.items()
-    )
+    for ref in fasta.references:
+        # fetching gene coding region data
+        seq = fasta.fetch(ref)
+        ref_data = ref.split('|')
+        enst = ref_data[0]
+        ensg = ref_data[1]
+        gene_name = ref_data[5]
+        transcript_length = int(ref_data[6])
+        
+        # string manipulation to isolate end and start of cds
+        cds = [s for s in ref_data if s.startswith("CDS:")]
+        start, end = cds[0].split(':')[1].split('-')
+        # type converstion to int
+        start = int(start)
+        end = int(end)
+        cds_seq = seq[start-1:end]
+        
+        #sanity checks
+        #- the cDNA seq length should divisible by 3
+        #- the first codon should be ATG
+        #- the last should be a stop codon (TAA, TGA, TAG)
+        #assert len(cds_seq)%3 == 0                 #actually it seems like this isn't always true somehow
+        #assert cds_seq[:3] == 'ATG'                #same with this
+        #assert cds_seq[-3:] in {'TAA','TGA','TAG'} #same with this
+        
+        has_atg_start = False
+        if cds_seq[:3] == "ATG":
+            has_atg_start = True
+        
+        stop_codons = ["TAA", "TGA", "TAG"]
+        stop_codon_end = False
+        if cds_seq[-3:] in stop_codons:
+            stop_codon_end = True
+        
+        
+        #count how many of each type of codon there are
+        codon_frequency = collections.Counter(cds_seq[i:i+3] for i in range(0, len(cds_seq), 3))
+        
+        #remove "codons" that are less than 3 basepairs (I don't know why the transcript lens aren't all div by 3)
+        codon_frequency = {codon:count for codon,count in codon_frequency.items() if len(codon) == 3}
+        
+        #use the pre-calculated counts of synonymous/missense/nonsense per codon to count total mutations
+        num_synonymous = sum(
+            synonymous_muts_per_codon[codon]*count
+            for codon,count in codon_frequency.items()
+        )
+        
+        num_missense = sum(
+            missense_muts_per_codon[codon]*count
+            for codon,count in codon_frequency.items()
+        )
 
-    num_nonsense = sum(
-        nonsense_muts_per_codon[codon]*count
-        for codon,count in codon_frequency.items()
-    )
+        num_nonsense = sum(
+            nonsense_muts_per_codon[codon]*count
+            for codon,count in codon_frequency.items()
+        )
 
-    #update the "data" dictionary
-    data['ensg'].append(ensg)
-    data['enst'].append(enst)
-    data['gene_name'].append(gene_name)
-    data['has_ATG_start'].append(has_atg_start)
-    data['stop_codon_end'].append(stop_codon_end)
-    data['cds_length'].append(len(cds_seq))
-    data['num_codons'].append(sum(codon_frequency.values()))
-    data['num_synonymous'].append(num_synonymous)
-    data['num_missense'].append(num_missense)
-    data['num_nonsense'].append(num_nonsense)
-    
-    
-#close the fasta file
-fasta.close()
+        #update the "data" dictionary
+        data['ensg'].append(ensg)
+        data['enst'].append(enst)
+        data['gene_name'].append(gene_name)
+        data['has_ATG_start'].append(has_atg_start)
+        data['stop_codon_end'].append(stop_codon_end)
+        data['cds_length'].append(len(cds_seq))
+        data['num_codons'].append(sum(codon_frequency.values()))
+        data['num_synonymous'].append(num_synonymous)
+        data['num_missense'].append(num_missense)
+        data['num_nonsense'].append(num_nonsense)
+        
+        
+    #close the fasta file
+    fasta.close()
 
-#convert the "data" dictionary to be a pandas table
-df = pd.DataFrame(data)
-df
+    #convert the "data" dictionary to be a pandas table
+    df = pd.DataFrame(data)
+    df['dnds'] = (df['num_nonsense'] + df['num_missense'])/df['num_synonymous']
+    dnds_values = df.iloc[-1].tolist()
+   
+    return(dnds_values)
+
+
