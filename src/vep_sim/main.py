@@ -49,12 +49,15 @@ def exhaustive_method(fasta):
 
 # click command for tstv method
 @cli.command()
-@click.argument(
-    'vep'
+@click.option(
+    '--vcf',
+    prompt='Path to vcf file',
+    help='Path to vcf file',
 )
-def tstv_test(vep):
-    tstv(vep)
-    print("Transition-transversion model")
+def tstv_test(vcf):
+    click.echo('Transition-transversion model started')
+    click.echo(f"tstv = {tstv(vcf)}")
+    print("Transition-transversion model finished")
 
 if __name__ == '__main__':
     cli()
