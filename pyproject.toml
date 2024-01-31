@@ -20,4 +20,4 @@ scipy = "^1.12.0"
 [tool.poetry.dev-dependencies]
 
 [tool.poetry.scripts]
-vep-sim = "vep_sim.main:main"
+vep-sim = "vep_sim.main:cli"
