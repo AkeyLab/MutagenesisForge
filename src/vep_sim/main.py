@@ -41,15 +41,16 @@ def sim_method():
     prompt='Path to fasta file',
     help='Path to fasta file',
 )
+# flag to calculate dN/dS by gene
 @click.option(
-'--by-gene',
+'--by-read',
 is_flag=True,
 help='Calculate dN/dS by gene'
 )
-def exhaustive_method(fasta, by_gene = False):
-    if by_gene:
+def exhaustive_method(fasta, by_read = False):
+    if by_read:
         click.echo("Exhaustive model ratio of each gene")
-        dnds = exhaustive(fasta, by_gene=True)
+        dnds = exhaustive(fasta, by_read=True)
         click.echo(f"dN/dS = {dnds}")
         click.echo("Exhaustive model complete")
     else:

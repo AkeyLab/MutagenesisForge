@@ -1,10 +1,10 @@
 import collections
-import gzip
+# import gzip potentially not needed
 import pysam
-import pandas as pd
+# import pandas as pd potentially not needed
 import numpy as np
 
-def exhaustive(path, by_gene=False):
+def exhaustive(path, by_read=False):
     # need to overhall this to support fasta files not in exact format of the one I downloaded from NCBI
 
     # codon to amino acid table
@@ -162,7 +162,7 @@ def exhaustive(path, by_gene=False):
     #df = pd.DataFrame(data)
     #df['dnds'] = (df['num_nonsense'] + df['num_missense'])/df['num_synonymous']
     #dnds_values = df.iloc[-1].tolist()
-    if by_gene:
+    if by_read:
         return(dnds2_mean)
     
     return(dnds_method_1)
