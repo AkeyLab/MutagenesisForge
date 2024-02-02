@@ -4,7 +4,7 @@ import pysam
 import pandas as pd
 import numpy as np
 
-def exhaustive(path):
+def exhaustive(path, by_gene=False):
     # need to overhall this to support fasta files not in exact format of the one I downloaded from NCBI
 
     # codon to amino acid table
@@ -150,19 +150,21 @@ def exhaustive(path):
     #convert the "data" dictionary into dnds
     #use the file-wide methodology
     dnds_method_1 = (sum(data['num_missense']) + sum(data['num_nonsense'])) / sum(data['num_synonymous'])
-    #dnds_method_2 = []
-    #for i in range(len(data['gene_name'])):
-    #    if data['num_synonymous'][i] == 0:
-    #        continue
-    #    dnds_method_2.append((data['num_missense'][i] + data['num_nonsense'][i]) / data['num_synonymous'][i])
+    dnds_method_2 = []
+    for i in range(len(data['has_ATG_start'])):
+        if data['num_synonymous'][i] == 0:
+            continue
+        dnds_method_2.append((data['num_missense'][i] + data['num_nonsense'][i]) / data['num_synonymous'][i])
     
-    #dnds2_mean = np.mean(dnds_method_2)
+    dnds2_mean = np.mean(dnds_method_2)
 
     #convert the "data" dictionary to be a pandas table
     #df = pd.DataFrame(data)
     #df['dnds'] = (df['num_nonsense'] + df['num_missense'])/df['num_synonymous']
     #dnds_values = df.iloc[-1].tolist()
-   
+    if by_gene:
+        return(dnds2_mean)
+    
     return(dnds_method_1)
 
 

@@ -41,11 +41,22 @@ def sim_method():
     prompt='Path to fasta file',
     help='Path to fasta file',
 )
-def exhaustive_method(fasta):
-    click.echo("Exhaustive model")
-    dnds = exhaustive(fasta)
-    click.echo(f"dN/dS = {dnds}")
-    click.echo("Exhaustive model complete")
+@click.option(
+'--by-gene',
+is_flag=True,
+help='Calculate dN/dS by gene'
+)
+def exhaustive_method(fasta, by_gene = False):
+    if by_gene:
+        click.echo("Exhaustive model ratio of each gene")
+        dnds = exhaustive(fasta, by_gene=True)
+        click.echo(f"dN/dS = {dnds}")
+        click.echo("Exhaustive model complete")
+    else:
+        click.echo("Exhaustive model ratio of entire file")
+        dnds = exhaustive(fasta)
+        click.echo(f"dN/dS = {dnds}")
+        click.echo("Exhaustive model complete")
 
 # click command for tstv method
 @cli.command()
