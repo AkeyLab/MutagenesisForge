@@ -1,0 +1,23 @@
+[build-system]
+requires = ["poetry-core>=1.1.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "vep-sim"
+version = "0.1.0"
+description = "create randomized simulations of variant effect predictions from an input vcf file and run statistics"
+authors = ["Cooper Koers <ck5658@princeton.edu>"]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+pysam = "*"
+pyfaidx = "*"
+click = "*"
+pandas = "*"
+pyyaml = "^6.0.1"
+scipy = "^1.12.0"
+
+[tool.poetry.dev-dependencies]
+
+[tool.poetry.scripts]
+vep-sim = "vep_sim.main:cli"

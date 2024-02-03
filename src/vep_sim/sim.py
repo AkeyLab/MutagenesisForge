@@ -1,15 +1,11 @@
-# import modules
-import sys
-import numpy as np
-import gzip
-import math
-import argparse
 from contextlib import contextmanager
+import gzip
 import pysam
+import numpy as np
 import os
 from collections import defaultdict
 import tempfile
-from pyfaidx import Fasta
+from .utils import load_parameter_from_yaml
 
 @contextmanager
 def my_open(filename: str, mode: str):
@@ -22,16 +18,17 @@ def my_open(filename: str, mode: str):
     open_file.close()
 
 
-def get_trinecleotide_context(chromosome, position, fasta_file):
-    # Load the reference genome FASTA file
-    genome = Fasta(fasta_file)
+def get_trinucleotide_context(chrom, pos, fasta_file):
+    # Get the allele at the specified position
+    allele_at_position = fasta_file.fetch(chrom, pos - 1, pos)
 
-    # Retrieve the sequence from the reference genome
-    base_before = genome[chromosome][position - 1].seq
-    base = genome[chromosome][position].seq
-    base_after = genome[chromosome][position + 1].seq
-    
-    return base_before, base, base_after
+    # Get the allele at the position before
+    allele_before_position = fasta_file.fetch(chrom, pos - 2, pos - 1)
+
+    # Get the allele at the position after
+    allele_after_position = fasta_file.fetch(chrom, pos, pos + 1)
+
+    return allele_before_position, allele_at_position, allele_after_position
 
 
 def get_base(fasta, chrom: str, position: str):
@@ -43,6 +40,7 @@ def get_base(fasta, chrom: str, position: str):
     base = fasta.fetch(chrom, pos-1, pos).upper()
     return base
 
+
 def get_random_position_in_regions(regions):
     #region is a string, e.g. "chr1 100 200"
     #return a random position in the region
@@ -51,6 +49,7 @@ def get_random_position_in_regions(regions):
     region_end = int(region.split()[2])
     pos = np.random.randint(region_start, region_end)
     return region.split()[0], pos
+
 
 def is_random_pos_wanted(fasta, random_chr, random_pos, before_base, after_base, ref_base):
     #return True if the random position is wanted, False otherwise
@@ -66,12 +65,14 @@ def is_random_pos_wanted(fasta, random_chr, random_pos, before_base, after_base,
         return False
     return True
 
+
 def get_random_mut(before_base, after_base, ref_base, regions, fasta):
     #before_base and after_base are strings of length 1
     #ref is a string of length 3
     #regions is an array of strings, each string is a region in the bed file
     #return a random mutation in a random region, and the mutation should match the following criteria: same trinucleotide context, random position from the bed regions, random alternative allele
     #return a tuple of (chr, pos, ref, alt)
+    #proabilities account for transverstion-transition bias
 
     # get a random position from the regions
     is_wanted = False
@@ -127,7 +128,8 @@ def create_vcf_file(input_file, output_file):
             for pos in sorted(variant_dict[chrom].keys()):
                 f.write(variant_dict[chrom][pos])
 
-def main(input_bed_file, input_mut_file, fasta_file, sim_num):
+
+def sim(input_bed_file, input_mut_file, fasta_file, sim_num, output):
     for i in range(sim_num):
         fasta = pysam.Fastafile(fasta_file)
         # read bed file and store the regions in an array
@@ -140,11 +142,11 @@ def main(input_bed_file, input_mut_file, fasta_file, sim_num):
         # the random mutation should match the following criteria: same trinucleotide context, random position from the bed regions, random alternative allele
         # the output file should have the following columns: chr, pos, ref_base, before_base, after_base, alt
         with tempfile.TemporaryDirectory() as temp_dir:
-            output_file = os.path.join(temp_dir, "output.txt")
+            output_raw_file = os.path.join(temp_dir, "output.txt")
             vcf = os.path.join(temp_dir, "output.vcf")
             vep = os.path.join(temp_dir, "vep_output.txt")
 
-            with my_open(output_file, 'w') as o, my_open(input_mut_file, 'r') as f:
+            with my_open(output_raw_file, 'w') as o, my_open(input_mut_file, 'r') as f:
                 header = f.readline().strip().split()
                 header_dict = dict(zip(header, range(len(header))))
                 chr_pos_dict = {}
@@ -169,41 +171,13 @@ def main(input_bed_file, input_mut_file, fasta_file, sim_num):
             # need to work on temp directory for vcf output (could be tricky)
             # vcf file of info
             with open(vcf, 'w') as f:
-                create_vcf_file(output_file, "output.vcf")
+                create_vcf_file(output_raw_file, "output.vcf")
 
             # going to have to edit the vep string os command to file input fasta file
             # should be able to use argparse input varaibles
             # issue here with directory of output file from vep call
             with open(vep, 'w'):
-                vep_cmd = 'vep -i output.vcf --fasta reference_genome.fa --assembly GRCh38 --offline --force_overwrite --tab -o vep' + str(
-                    sim_num) + '_output.txt'
+                sim_vep_path = load_parameter_from_yaml('parameters.yaml', 'sim_vep_path')
+                sim_output = load_parameter_from_yaml('parameters.yaml', 'output_dir') + "/" + "sim" + str(sim_num) + output + ".out"
+                vep_cmd = sim_vep_path + sim_output
                 vep_run = os.system(vep_cmd)
-
-
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-
-    parser.add_argument(
-            '--input_bed', '-input_bed', type=str, required=True,
-            help='Input Bed file')
-    parser.add_argument(
-            '--input_mut', '-input_mut', type=str, required=True,
-            help='Input mutation file')
-    parser.add_argument(
-            '--fasta', '-fasta', type=str, required=True,
-            help='Fasta file')
-    parser.add_argument(
-            '--output', '---output', type=str, required=True, dest='output',
-            help='Output table of variants; may be gzipped')
-    parser.add_argument(
-            '--sim_count', '-sim_count', type=int, required=True, default = 0, help='Number of simulations to be run')
-
-    args = parser.parse_args()
-
-    input_bed_file = args.input_bed
-    input_mut_file = args.input_mut
-    fasta_file = args.fasta
-    output_file = args.output
-    sim_num = args.sim_count
-
-    main(input_bed_file, input_mut_file, fasta_file, sim_num)
