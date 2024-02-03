@@ -2,11 +2,13 @@ from .sim import sim
 from .stat_utils import synoymous_detected, dNds, total_dNds
 from .exhaustive import exhaustive
 from .transition_transversion import tstv
+from .utils import load_parameter_from_yaml
+
 import os
 import click
 import numpy as np
 from scipy import stats
-from .utils import load_parameter_from_yaml
+
 
         
 # apply this function to the directory of vep output files for statistical analysis
