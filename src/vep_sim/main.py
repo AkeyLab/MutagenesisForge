@@ -26,6 +26,28 @@ from scipy import stats
 #sim_vep_path = load_parameter_from_yaml('parameters.yaml', 'sim_vep_path')
 #output_dir = load_parameter_from_yaml('parameters.yaml', 'output_dir')
 
+# potential functionally for slurm job submission
+#def submit_job(file):
+#    os.system(f'sbatch {file}')
+#    return
+
+# example of sbatch file submission without .sh file
+#sbatch <<EOF
+## Slurm directives and commands
+##SBATCH --job-name=my_job
+##SBATCH --output=output.txt
+##SBATCH --error=error.txt
+##SBATCH --partition=compute
+##SBATCH --nodes=1
+##SBATCH --ntasks=4
+##SBATCH --cpus-per-task=1
+##SBATCH --mem=4G
+##SBATCH --time=1:00:00
+
+# Commands to run
+#your_command arg1 arg2
+#EOF
+
 # group cli test options
 @click.group()
 def cli():
