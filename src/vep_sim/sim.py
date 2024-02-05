@@ -7,6 +7,8 @@ from collections import defaultdict
 import tempfile
 from .utils import load_parameter_from_yaml
 
+# Need to tighten this up, and make sure it works with the vep call
+
 @contextmanager
 def my_open(filename: str, mode: str):
     '''A wrapper for open/gzip.open logic as a context manager'''

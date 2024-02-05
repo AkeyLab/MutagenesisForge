@@ -5,8 +5,6 @@ import pysam
 import numpy as np
 
 def exhaustive(path, by_read=False):
-    # need to overhall this to support fasta files not in exact format of the one I downloaded from NCBI
-
     # codon to amino acid table
     codon_to_amino = {
         'TTT': 'F', 'TTC': 'F', 'TTA': 'L', 'TTG': 'L',
@@ -59,17 +57,16 @@ def exhaustive(path, by_read=False):
                     num_missense_muts += 1
                 else:
                     num_synonymous_muts += 1
-                    
-                    
-                #print(f'orig_codon={codon}, mutated_codon={mutated_codon}, orig_amino={amino}, mut_amino={mutated_amino}')
-        
+                            
         #store the number of each type of mutation for this codon
         synonymous_muts_per_codon[codon] = num_synonymous_muts
         missense_muts_per_codon[codon] = num_missense_muts
         nonsense_muts_per_codon[codon] = num_nonsense_muts
-            
+    
+    #open the fasta file
     fasta = pysam.FastaFile(path)
 
+    #initialize the data dictionary
     data = {
         'has_ATG_start':[],
         'stop_codon_end':[],
@@ -83,24 +80,8 @@ def exhaustive(path, by_read=False):
     for ref in fasta.references:
         # fetching gene coding region data
         seq = fasta.fetch(ref)
-        #print(seq + '\n' + '\n')  #debugging
-        
-        # string manipulation to isolate end and start of cds
-        #cds = [s for s in ref_data if s.startswith("CDS:")]
-        #start, end = cds[0].split(':')[1].split('-')
-        # type converstion to int
-        #start = int(start)
-        #end = int(end)
-        #cds_seq = seq[start-1:end]
-        
-        #sanity checks
-        #- the cDNA seq length should divisible by 3
-        #- the first codon should be ATG
-        #- the last should be a stop codon (TAA, TGA, TAG)
-        #assert len(cds_seq)%3 == 0                 #actually it seems like this isn't always true somehow
-        #assert cds_seq[:3] == 'ATG'                #same with this
-        #assert cds_seq[-3:] in {'TAA','TGA','TAG'} #same with this
-        
+
+        #check if the sequence has a start codon and stop codon
         has_atg_start = False
         if seq[:3] == "ATG":
             has_atg_start = True
@@ -146,25 +127,24 @@ def exhaustive(path, by_read=False):
     #close the fasta file
     fasta.close()
 
-
-    #convert the "data" dictionary into dnds
-    #use the file-wide methodology
+    #convert the "data" dictionary into dnds values for the file-wide methodology
     dnds_method_1 = (sum(data['num_missense']) + sum(data['num_nonsense'])) / sum(data['num_synonymous'])
+    
+    #calculate the dnds value using the read-wide methodology
     dnds_method_2 = []
     for i in range(len(data['has_ATG_start'])):
         if data['num_synonymous'][i] == 0:
             continue
         dnds_method_2.append((data['num_missense'][i] + data['num_nonsense'][i]) / data['num_synonymous'][i])
     
+    #calculate the mean of the read-wide dnds values
     dnds2_mean = np.mean(dnds_method_2)
 
-    #convert the "data" dictionary to be a pandas table
-    #df = pd.DataFrame(data)
-    #df['dnds'] = (df['num_nonsense'] + df['num_missense'])/df['num_synonymous']
-    #dnds_values = df.iloc[-1].tolist()
+    # return the dnds value calculated using the read-wide methodology
     if by_read:
         return(dnds2_mean)
     
+    # return the dnds value calculated using the file-wide methodology
     return(dnds_method_1)
 
 
