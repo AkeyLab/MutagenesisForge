@@ -8,6 +8,7 @@ import os
 import click
 import numpy as np
 from scipy import stats
+import tempfile
 
 
         
@@ -48,8 +49,32 @@ from scipy import stats
 #your_command arg1 arg2
 #EOF
 
+def slurm_submit(command):
+    with tempfile.TemporaryDirectory() as temp_dir:
+        f = os.path.join(temp_dir, "slurm_test.sh")
+        with open("slurm_test.sh", "w") as f:
+            f.write("#!/bin/bash\n")
+            f.write("#SBATCH --job-name=test\n")
+            f.write("#SBATCH --output=output.txt\n")
+            f.write("#SBATCH --error=error.txt\n")
+            f.write("#SBATCH --partition=compute\n")
+            f.write("#SBATCH --nodes=1\n")
+            f.write("#SBATCH --ntasks=4\n")
+            f.write("#SBATCH --cpus-per-task=1\n")
+            f.write("#SBATCH --mem=4G\n")
+            f.write("#SBATCH --time=1:00:00\n")
+            f.write("\n")
+            f.write("your_command arg1 arg2\n")
+            os.system(f'sbatch {f}')
+
+
 # group cli test options
 @click.group()
+@click.option(
+    '--slurm',
+    is_flag=True,
+    help='Submit job to slurm'
+)
 def cli():
     pass
 
@@ -60,20 +85,26 @@ def sim_method():
 
 # click command for exhaustive method
 @cli.command()
+
+# click option for fasta file
 @click.option(
     '--fasta',
     prompt='Path to fasta file',
     help='Path to fasta file',
 )
+
 # flag to calculate dN/dS by gene
 @click.option(
 '--by-read',
 is_flag=True,
 help='Calculate dN/dS by gene'
 )
-def exhaustive_method(fasta, by_read = False):
+
+# method for exhaustive method
+def exhaustive_method(fasta, by_read = False, slurm = False):
     if by_read:
-        click.echo("Exhaustive model ratio of each gene")
+        # if read flag as additional conditional perhaps
+        click.echo("Exhaustive model mean ratio of each read")
         dnds = exhaustive(fasta, by_read=True)
         click.echo(f"dN/dS = {dnds}")
         click.echo("Exhaustive model complete")

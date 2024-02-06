@@ -96,7 +96,7 @@ def get_random_mut(before_base, after_base, ref_base, regions, fasta):
             elif ref_base == 'G':
                 alt = str(np.random.choice(list(alts), p = [0.25, 0.5, 0.25]))
             return random_chr, random_pos, ref_base, alt
-    
+
 
 def create_vcf_file(input_file, output_file):
 
