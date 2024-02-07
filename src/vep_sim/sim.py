@@ -7,6 +7,11 @@ from collections import defaultdict
 import tempfile
 from .utils import load_parameter_from_yaml
 
+
+# for vep call, use a combination of yaml input and user input for the files run through vep
+# ex. yaml input then remove -o and -i and replace with user input through click via main.py
+# need to include more input flags potentially
+
 @contextmanager
 def my_open(filename: str, mode: str):
     '''A wrapper for open/gzip.open logic as a context manager'''

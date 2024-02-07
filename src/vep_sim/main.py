@@ -34,6 +34,8 @@ def cli():
 # click command for sim method
 @cli.command()
 def sim_method():
+    click.echo('Sim model started')
+    sim()
     print("Sim model")
 
 # click command for exhaustive method
