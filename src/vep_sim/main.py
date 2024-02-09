@@ -33,6 +33,31 @@ def cli():
 
 # click command for sim method
 @cli.command()
+@click.option(
+    '--vcf',
+    prompt='path to reference vcf file',
+    help='path to reference vcf file'
+)
+@click.option(
+    '--bed',
+    prompt='path to bed file',
+    help='path to bed file'
+)
+@click.option(
+    '--fasta',
+    prompt='path to fasta file',
+    help='path to fasta file'
+)
+@click.option(
+    '--sim-num',
+    prompt='number of simulations',
+    help='number of simulations'
+)
+@click.option(
+    '--output',
+    default = 'output.vep',
+    help='output name'
+)
 def sim_method():
     print("Sim model")
 
