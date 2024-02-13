@@ -58,6 +58,11 @@ def cli():
     default = 'output.vep',
     help='output name'
 )
+@click.option(
+    '--tstv',
+    default = 2.0,
+    help='transition-transversion ratio'
+)
 def sim_method():
     click.echo('Sim model started')
     sim()
