@@ -63,10 +63,13 @@ def cli():
     default = 2.0,
     help='transition-transversion ratio'
 )
-def sim_method():
+def sim_method(vcf, bed, fasta, sim_num, output, tstv = 2.0):
     click.echo('Sim model started')
-    sim()
-    print("Sim model")
+    if tstv != 2.0:
+        sim(vcf, bed, fasta, sim_num, output, tstv)
+    if tstv == 2.0:
+        sim(vcf, bed, fasta, sim_num, output) 
+    print("Sim model complete")
 
 # click command for exhaustive method
 @cli.command()
