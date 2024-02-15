@@ -58,8 +58,18 @@ def cli():
     default = 'output.vep',
     help='output name'
 )
-def sim_method():
-    print("Sim model")
+@click.option(
+    '--tstv',
+    default = 2.0,
+    help='transition-transversion ratio'
+)
+def sim_method(vcf, bed, fasta, sim_num, output, tstv = 2.0):
+    click.echo('Sim model started')
+    if tstv != 2.0:
+        sim(vcf, bed, fasta, sim_num, output, tstv)
+    if tstv == 2.0:
+        sim(vcf, bed, fasta, sim_num, output) 
+    print("Sim model complete")
 
 # click command for exhaustive method
 @cli.command()

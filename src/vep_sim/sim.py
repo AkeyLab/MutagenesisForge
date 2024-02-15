@@ -7,6 +7,11 @@ from collections import defaultdict
 import tempfile
 from .utils import load_parameter_from_yaml
 
+
+# for vep call, use a combination of yaml input and user input for the files run through vep
+# ex. yaml input then remove -o and -i and replace with user input through click via main.py
+# need to include more input flags potentially
+
 @contextmanager
 def my_open(filename: str, mode: str):
     '''A wrapper for open/gzip.open logic as a context manager'''
@@ -66,7 +71,7 @@ def is_random_pos_wanted(fasta, random_chr, random_pos, before_base, after_base,
     return True
 
 
-def get_random_mut(before_base, after_base, ref_base, regions, fasta):
+def get_random_mut(before_base, after_base, ref_base, regions, fasta, tstv):
     #before_base and after_base are strings of length 1
     #ref is a string of length 3
     #regions is an array of strings, each string is a region in the bed file
@@ -84,15 +89,15 @@ def get_random_mut(before_base, after_base, ref_base, regions, fasta):
         is_wanted = is_random_pos_wanted(fasta, random_chr, random_pos, before_base, after_base, ref_base)
         # if the trinucleotide context is the same, get a random alternative allele
         if is_wanted:
-            alts = set(['A', 'T', 'C', 'G']) - set([ref_base])
-            if ref_base == 'A':
-                alt = str(np.random.choice(list(alts), p = [0.25, 0.25, 0.5]))
-            elif ref_base == 'T':
-                alt = str(np.random.choice(list(alts), p = [0.5, 0.25, 0.25]))
-            elif ref_base == 'C':
-                alt = str(np.random.choice(list(alts), p = [0.25, 0.5, 0.25]))
-            elif ref_base == 'G':
-                alt = str(np.random.choice(list(alts), p = [0.25, 0.5, 0.25]))
+            #tstv ratio
+            if pos_base == 'A':
+                alt = str(np.random.choice(['C', 'T', 'G'], p = [tstv/3, (1-tstv)/3, (1-tstv)/3]))
+            elif pos_base == 'T':
+                alt = str(np.random.choice(['C', 'A', 'G'], p = [tstv/3, (1-tstv)/3, (1-tstv)/3]))
+            elif pos_base == 'C':
+                alt = str(np.random.choice(['A', 'T', 'G'], p = [tstv/3, (1-tstv)/3, (1-tstv)/3]))
+            elif pos_base == 'G':
+                alt = str(np.random.choice(['C', 'T', 'A'], p = [tstv/3, (1-tstv)/3, (1-tstv)/3]))
             return random_chr, random_pos, ref_base, alt
     
 
@@ -129,7 +134,7 @@ def create_vcf_file(input_file, output_file):
                 f.write(variant_dict[chrom][pos])
 
 
-def sim(input_bed_file, input_mut_file, fasta_file, sim_num, output):
+def sim(input_bed_file, input_mut_file, fasta_file, sim_num, output, tstv = 2.0):
     for i in range(sim_num):
         fasta = pysam.Fastafile(fasta_file)
         # read bed file and store the regions in an array
@@ -160,7 +165,7 @@ def sim(input_bed_file, input_mut_file, fasta_file, sim_num, output):
                     before_base, ref_base, after_base = get_trinucleotide_context(chromosome, position, fasta)
                     while not add_one_random_mut:
                         random_chr, random_pos, ref_base, alt = get_random_mut(before_base, after_base, ref_base, regions,
-                                                                           fasta)
+                                                                           fasta, tstv)
                         chr_pos = random_chr + "_" + str(random_pos)
                         if chr_pos not in chr_pos_dict:
                             chr_pos_dict[chr_pos] = 1
