@@ -51,6 +51,7 @@ def cli():
 @click.option(
     '--sim-num',
     prompt='number of simulations',
+    default=10,
     help='number of simulations'
 )
 @click.option(
