@@ -81,8 +81,10 @@ def exhaustive(path, by_read=False):
     }
 
     for ref in fasta.references:
+        print(ref)
         # fetching gene coding region data
         seq = fasta.fetch(ref)
+        print(seq[:1000])
         #print(seq + '\n' + '\n')  #debugging
         
         # string manipulation to isolate end and start of cds
@@ -118,6 +120,7 @@ def exhaustive(path, by_read=False):
         codon_frequency = {codon:count for codon,count in codon_frequency.items() if len(codon) == 3}
         
         #use the pre-calculated counts of synonymous/missense/nonsense per codon to count total mutations
+        #account for strings not in codon table
         num_synonymous = sum(
             synonymous_muts_per_codon[codon]*count
             for codon,count in codon_frequency.items()
