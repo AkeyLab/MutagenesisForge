@@ -81,10 +81,8 @@ def exhaustive(path, by_read=False):
     }
 
     for ref in fasta.references:
-        print(ref)
         # fetching gene coding region data
         seq = fasta.fetch(ref)
-        print(seq[:1000])
         #print(seq + '\n' + '\n')  #debugging
         
         # string manipulation to isolate end and start of cds

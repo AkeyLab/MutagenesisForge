@@ -3,3 +3,4 @@ __pycache__
 *.vcf
 *.fai
 della.txt
+*.gz
