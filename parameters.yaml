@@ -1,14 +1,4 @@
-# will only be used to store the paths for the sim method
+# vep tool path
+vep_tool_path: /path/to/vep
 
-
-# Description: This file contains the paths to the various tools used in the pipeline
-# emp and sim refer to the empirical and simulated data, respectively
-
-# Output directory
-output_dir: "insert output directory here"
-
-# Paths to the vep calls
-# example usage: vep_cache_path: ""
-sim_vep_path: "insert vep call syntax here"
-emp_vep_path: "insert vep call syntax here"
-
+vcf: /path/to/vcf

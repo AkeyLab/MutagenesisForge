@@ -9,3 +9,6 @@ def load_parameter_from_yaml(file_path, parameter_name):
             print(f"Parameter '{parameter_name}' not found in {file_path}")
             return None
         
+vep_call = load_parameter_from_yaml('parameters.yaml', 'vep_tool_path')
+
+vcf = load_parameter_from_yaml('parameters.yaml', 'vcf')
