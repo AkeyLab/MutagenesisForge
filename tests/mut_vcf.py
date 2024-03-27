@@ -5,8 +5,8 @@ import numpy as np
 import os
 from collections import defaultdict
 import tempfile
-from .utils import load_parameter_from_yaml
 
+# return vcf file of random mutations
 
 # for vep call, use a combination of yaml input and user input for the files run through vep
 # ex. yaml input then remove -o and -i and replace with user input through click via main.py
@@ -22,6 +22,13 @@ def my_open(filename: str, mode: str):
     yield open_file
     open_file.close()
 
+# my_open test
+with my_open("chromosome10_test.vcf", "r") as f:
+    for line in f:
+        if line.startswith('#'):
+            continue
+            #print(line)
+
 
 def get_trinucleotide_context(chrom, pos, fasta_file):
     # Get the allele at the specified position
@@ -34,6 +41,8 @@ def get_trinucleotide_context(chrom, pos, fasta_file):
     allele_after_position = fasta_file.fetch(chrom, pos, pos + 1)
 
     return allele_before_position, allele_at_position, allele_after_position
+
+get_trinucleotide_context("chr1", 100, pysam.Fastafile("test.fa"))
 
 
 def get_base(fasta, chrom: str, position: str):
@@ -134,7 +143,7 @@ def create_vcf_file(input_file, output_file):
                 f.write(variant_dict[chrom][pos])
 
 
-def sim(input_bed_file, input_mut_file, fasta_file, sim_num, output, tstv = 2.0):
+def vcf_constr(input_bed_file, input_mut_file, fasta_file, sim_num, output, tstv = 2.0):
     for i in range(sim_num):
         fasta = pysam.Fastafile(fasta_file)
         # read bed file and store the regions in an array
