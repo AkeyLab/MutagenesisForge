@@ -1,0 +1,6 @@
+WARNING: Failed to instantiate plugin LoF: install_driver(SQLite) failed: Can't locate DBD/SQLite.pm in @INC (you may need to install the DBD::SQLite module) (@INC contains: /projects/AKEY/akey_vol1/software/ensembl-vep/cache/VEP_plugins /projects/AKEY/akey_vol1/software/ensembl-vep/modules /projects/AKEY/akey_vol1/software/ensembl-vep /usr/local/lib64/perl5 /usr/local/share/perl5 /usr/lib64/perl5/vendor_perl /usr/share/perl5/vendor_perl /usr/lib64/perl5 /usr/share/perl5) at (eval 82) line 3.
+Perhaps the DBD::SQLite perl module hasn't been fully installed,
+or perhaps the capitalisation of 'SQLite' isn't right.
+Available drivers: DBM, ExampleP, File, Gofer, Mem, Sponge, mysql.
+ at /projects/AKEY/akey_vol1/software/ensembl-vep/cache/VEP_plugins/LoF.pm line 126.
+

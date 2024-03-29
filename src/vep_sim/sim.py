@@ -25,13 +25,14 @@ def my_open(filename: str, mode: str):
 
 def get_trinucleotide_context(chrom, pos, fasta_file):
     # Get the allele at the specified position
-    allele_at_position = fasta_file.fetch(chrom, pos - 1, pos)
+    print(chrom, pos)
+    allele_at_position = fasta_file.fetch(chrom, int(pos) - 1, int(pos))
 
     # Get the allele at the position before
-    allele_before_position = fasta_file.fetch(chrom, pos - 2, pos - 1)
+    allele_before_position = fasta_file.fetch(chrom, int(pos) - 2, int(pos) - 1)
 
     # Get the allele at the position after
-    allele_after_position = fasta_file.fetch(chrom, pos, pos + 1)
+    allele_after_position = fasta_file.fetch(chrom, int(pos), int(pos) + 1)
 
     return allele_before_position, allele_at_position, allele_after_position
 
@@ -182,7 +183,13 @@ def sim(input_bed_file, input_mut_file, fasta_file, sim_num, output, tstv = 2.0)
             # should be able to use argparse input varaibles
             # issue here with directory of output file from vep call
             with open(vep, 'w'):
-                sim_vep_path = load_parameter_from_yaml('parameters.yaml', 'sim_vep_path')
-                sim_output = load_parameter_from_yaml('parameters.yaml', 'output_dir') + "/" + "sim" + str(sim_num) + output + ".out"
-                vep_cmd = sim_vep_path + sim_output
+                
+                vep_cmd = '/projects/AKEY/akey_vol1/software/ensembl-vep/vep -i output.vcf --cache /projects/AKEY/akey_vol1/software/ensembl-vep/cache --force --plugin LoF,loftee_path:/projects/AKEY/akey_vol1/software/loftee,human_ancestor_fa:/projects/AKEY/akey_vol1/software/loftee/human_ancestor.fa.gz,conservation_file:/projects/AKEY/akey_vol1/software/loftee/phylocsf_gerp.sql --dir_plugins /projects/AKEY/akey_vol1/software/ensembl-vep/cache/VEP_plugins --pick --everything --merged --offline  --dir_cache /projects/AKEY/akey_vol1/software/ensembl-vep/cache --assembly GRCh37 --fasta /projects/AKEY/akey_vol2/References/Genomes/hs37d5/hs37d5.fa --use_given_ref --tab -o trans_adjust_vep' + str(sim_num) + '_output.txt --plugin CADD,/projects/AKEY/akey_vol1/software/ensembl-vep/cache/VEP_plugins/whole_genome_SNVs.tsv.gz --total_length'
                 vep_run = os.system(vep_cmd)
+
+                
+                #test_vep = ''
+                #sim_vep_path = load_parameter_from_yaml('parameters.yaml', 'sim_vep_path')
+                #sim_output = load_parameter_from_yaml('parameters.yaml', 'output_dir') + "/" + "sim" + str(sim_num) + output + ".out"
+                #vep_cmd = sim_vep_path + sim_output
+                #vep_run = os.system(vep_cmd)

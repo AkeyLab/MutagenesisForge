@@ -9,28 +9,56 @@ import click
 import numpy as np
 from scipy import stats
 
+from tests.mut_vcf import vcf_constr
 
-        
-# apply this function to the directory of vep output files for statistical analysis
-# only used in sim method
-#def find_files_with_prefix(prefix, directory = load_parameter_from_yaml('parameters.yaml', 'output_dir')):
-#    matching_files = []
-#    for filename in os.listdir(directory):
-#        if filename.startswith(prefix):
-#            matching_files.append(filename)
-#    return matching_files
-        
-
-# access parameters from yaml file for sim method
-#emp_vep_path = load_parameter_from_yaml('parameters.yaml', 'emp_vep_path')
-#sim_vep_path = load_parameter_from_yaml('parameters.yaml', 'sim_vep_path')
-#output_dir = load_parameter_from_yaml('parameters.yaml', 'output_dir')
 
 # group cli test options
 @click.group()
 def cli():
     pass
 
+# click command for vcf construction debugging
+@cli.command()
+@click.option(
+    '--vcf',
+    prompt='path to reference vcf file',
+    help='path to reference vcf file'
+)
+@click.option(
+    '--bed',
+    prompt='path to bed file',
+    help='path to bed file'
+)
+@click.option(
+    '--fasta',
+    prompt='path to fasta file',
+    help='path to fasta file'
+)
+@click.option(
+    '--tstv',
+    default = 2.0,
+    help='transition-transversion ratio'
+)
+@click.option(
+    '--output',
+    default = 'output.vcf',
+    help='output name'
+)
+def vcf_construction(vcf, bed, fasta, output, tstv = 2.0):
+    click.echo('vcf construction started')
+    if tstv != 2.0:
+        vcf_constr(vcf, bed, fasta, output, tstv)
+    if tstv == 2.0:
+        vcf_constr(vcf, bed, fasta, output) 
+    print("vcf construction complete")
+
+# click command for vep debugging
+@cli.command()
+@click.option(
+    '--vcf',
+    prompt='path to reference vcf file',
+    help='path to reference vcf file'
+)
 # click command for sim method
 @cli.command()
 @click.option(

@@ -1,14 +1,4 @@
-# will only be used to store the paths for the sim method
+# vep tool path
+vep_tool_path: '/projects/AKEY/akey_vol1/software/ensembl-vep/vep -i output.vcf --cache /projects/AKEY/akey_vol1/software/ensembl-vep/cache --force --plugin LoF,loftee_path:/projects/AKEY/akey_vol1/software/loftee,human_ancestor_fa:/projects/AKEY/akey_vol1/software/loftee/human_ancestor.fa.gz,conservation_file:/projects/AKEY/akey_vol1/software/loftee/phylocsf_gerp.sql --dir_plugins /projects/AKEY/akey_vol1/software/ensembl-vep/cache/VEP_plugins --pick --everything --merged --offline  --dir_cache /projects/AKEY/akey_vol1/software/ensembl-vep/cache --assembly GRCh37 --fasta /projects/AKEY/akey_vol2/References/Genomes/hs37d5/hs37d5.fa --use_given_ref --tab -o output.vep --plugin CADD,/projects/AKEY/akey_vol1/software/ensembl-vep/cache/VEP_plugins/whole_genome_SNVs.tsv.gz --total_length'
 
-
-# Description: This file contains the paths to the various tools used in the pipeline
-# emp and sim refer to the empirical and simulated data, respectively
-
-# Output directory
-output_dir: "insert output directory here"
-
-# Paths to the vep calls
-# example usage: vep_cache_path: ""
-sim_vep_path: "insert vep call syntax here"
-emp_vep_path: "insert vep call syntax here"
-
+vcf: /path/to/vcf
