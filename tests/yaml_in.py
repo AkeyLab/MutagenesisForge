@@ -4,7 +4,7 @@ def get_input(prompt):
     try:
         return input(prompt)
     except KeyboardInterrupt:
-        return none
+        return None
 
 
 def main():

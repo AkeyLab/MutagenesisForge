@@ -2,9 +2,11 @@ from contextlib import contextmanager
 import gzip
 import pysam
 import numpy as np
-import os
 from collections import defaultdict
+
+# remanats from old code
 import tempfile
+import os
 
 # return vcf file of random mutations
 

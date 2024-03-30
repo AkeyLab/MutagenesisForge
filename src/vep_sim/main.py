@@ -9,7 +9,7 @@ import click
 import numpy as np
 from scipy import stats
 
-from tests.mut_vcf import vcf_constr
+from vep_sim.mut_vcf import vcf_constr
 
 
 # group cli test options
