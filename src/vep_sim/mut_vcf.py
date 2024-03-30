@@ -4,8 +4,7 @@ import pysam
 import numpy as np
 from collections import defaultdict
 
-# remanats from old code
-import tempfile
+import yaml
 import os
 
 # return vcf file of random mutations
@@ -165,7 +164,18 @@ def create_vcf_file(input_file, output_file):
             for pos in sorted(variant_dict[chrom].keys()):
                 f.write(variant_dict[chrom][pos])
 
-def vcf_constr0(bed_file, mut_file, fasta_file, output, tstv, sim_num):
+
+def load_parameter_from_yaml(file_path, parameter_name):
+    with open(file_path, 'r') as file:
+        params = yaml.safe_load(file)
+        if parameter_name in params:
+            return params[parameter_name]
+        else:
+            print(f"Parameter '{parameter_name}' not found in {file_path}")
+            return None
+
+
+def vcf_constr(bed_file, mut_file, fasta_file, output, tstv, sim_num, vep_call = False):
     # convert fasta file path into fastafile object
     fasta = pysam.Fastafile(fasta_file)
     
@@ -177,12 +187,14 @@ def vcf_constr0(bed_file, mut_file, fasta_file, output, tstv, sim_num):
             regions.append(line)
 
     for i in range(sim_num):
-        # create primitive data file (output.txt)
-        with my_open(mut_file, 'r') as f, my_open("output.txt", 'w') as o:
+        # create output file names based on the iteration
+        file_shell = output + str(i) + '.txt'
+        vcf_shell = output + str(i) + '.vcf'
+        with my_open(mut_file, 'r') as f, my_open(file_shell, 'w') as o:
             header = f.readline().strip().split()
             header_dict = dict(zip(header, range(len(header))))
             chr_pos_dict = {}
-            count = 0
+            # count = 0
             for line in f:
                 ''' this is for testing purposes
                 count += 1
@@ -206,9 +218,17 @@ def vcf_constr0(bed_file, mut_file, fasta_file, output, tstv, sim_num):
                         add_one_random_mut = True
                         out_line = [random_chr, str(random_pos), ref_base, before_base, after_base, alt]
                         o.write('\t'.join([str(x) for x in out_line]) + '\n')
-        create_vcf_file('output.txt', 'output.vcf')
+        create_vcf_file(file_shell, vcf_shell)
+        
+        # flag for vep run
+        if vep_call:
+            # run vep call on created vcf file
+            # current path is just the path for my personal computer
+            vep = load_parameter_from_yaml('/projects/AKEY/akey_vol2/cooper/vep-sim/parameters.yaml', 'vep_tool_path')
+            os.system(vep_call)
+    
 
-vcf_constr0('/projects/AKEY/akey_vol2/huixinx/Projects/01.eGTEx/NWGC/04.fig3/02.exp_mis_to_syn_ratio/step12.problematic.bed', 
+vcf_constr('/projects/AKEY/akey_vol2/huixinx/Projects/01.eGTEx/NWGC/04.fig3/02.exp_mis_to_syn_ratio/step12.problematic.bed', 
         '/projects/AKEY/akey_vol2/huixinx/Projects/01.eGTEx/NWGC/04.fig3/02.exp_mis_to_syn_ratio/docker_stringent.nwgc.rep2.raw_bb_p_lt_10_8.filtered10.txt',
         '/projects/AKEY/akey_vol2/References/Genomes/hs37d5/hs37d5.fa',
         'output.out')

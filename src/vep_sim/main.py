@@ -44,61 +44,20 @@ def cli():
     default = 'output.vcf',
     help='output name'
 )
-def vcf_construction(vcf, bed, fasta, output, tstv = 2.0):
-    click.echo('vcf construction started')
-    if tstv != 2.0:
-        vcf_constr(vcf, bed, fasta, output, tstv)
-    if tstv == 2.0:
-        vcf_constr(vcf, bed, fasta, output) 
-    print("vcf construction complete")
-
-# click command for vep debugging
-@cli.command()
 @click.option(
-    '--vcf',
-    prompt='path to reference vcf file',
-    help='path to reference vcf file'
-)
-# click command for sim method
-@cli.command()
-@click.option(
-    '--vcf',
-    prompt='path to reference vcf file',
-    help='path to reference vcf file'
-)
-@click.option(
-    '--bed',
-    prompt='path to bed file',
-    help='path to bed file'
-)
-@click.option(
-    '--fasta',
-    prompt='path to fasta file',
-    help='path to fasta file'
-)
-@click.option(
-    '--sim-num',
-    prompt='number of simulations',
-    default=10,
+    '--sims',
+    default = 10,
     help='number of simulations'
 )
 @click.option(
-    '--output',
-    default = 'output.vep',
-    help='output name'
+    '--vep_call',
+    default = False,
+    help='run vep call'
 )
-@click.option(
-    '--tstv',
-    default = 2.0,
-    help='transition-transversion ratio'
-)
-def sim_method(vcf, bed, fasta, sim_num, output, tstv = 2.0):
-    click.echo('Sim model started')
-    if tstv != 2.0:
-        sim(vcf, bed, fasta, sim_num, output, tstv)
-    if tstv == 2.0:
-        sim(vcf, bed, fasta, sim_num, output) 
-    print("Sim model complete")
+def vcf_construction(vcf, bed, fasta, output, tstv, sims, vep_call):
+    click.echo('vcf construction started')
+    vcf_constr(bed, vcf, fasta, output, tstv, sims, vep_call)
+    print("vcf construction complete")
 
 # click command for exhaustive method
 @cli.command()
