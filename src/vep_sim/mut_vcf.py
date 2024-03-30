@@ -175,7 +175,7 @@ def load_parameter_from_yaml(file_path, parameter_name):
             return None
 
 
-def vcf_constr(bed_file, mut_file, fasta_file, output, tstv, sim_num, vep_call = False):
+def vcf_constr(bed_file, mut_file, fasta_file, output, tstv, sim_num, vep_call:
     # convert fasta file path into fastafile object
     fasta = pysam.Fastafile(fasta_file)
     

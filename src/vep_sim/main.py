@@ -59,6 +59,18 @@ def vcf_construction(vcf, bed, fasta, output, tstv, sims, vep_call):
     vcf_constr(bed, vcf, fasta, output, tstv, sims, vep_call)
     print("vcf construction complete")
 
+    # returning dN/dS values if vep_call is True
+    if vep_call:
+        veps = []
+        for i in range(sims):
+            vep_path = output + str(i) + '.vep'
+            veps.append(vep_path)
+        #dnds differences can be calculated here
+        print(f'dN/dS for empirical vcf: {dNds(vcf)}')
+        print(f'dN/dS for total simulation data: {total_dNds(veps)}')
+        print(f'dN/dS for each simulation: {[dNds(vep) for vep in veps]}')
+
+
 # click command for exhaustive method
 @cli.command()
 @click.option(
