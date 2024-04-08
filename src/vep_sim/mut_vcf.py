@@ -7,6 +7,8 @@ from collections import defaultdict
 import yaml
 import os
 
+from .utils import *
+
 # return vcf file of random mutations
 
 # for vep call, use a combination of yaml input and user input for the files run through vep
@@ -175,7 +177,7 @@ def load_parameter_from_yaml(file_path, parameter_name):
             return None
 
 
-def vcf_constr(bed_file, mut_file, fasta_file, output, tstv, sim_num, vep_call:
+def vcf_constr(bed_file, mut_file, fasta_file, output, tstv, sim_num, vep_call):
     # convert fasta file path into fastafile object
     fasta = pysam.Fastafile(fasta_file)
     
@@ -187,6 +189,7 @@ def vcf_constr(bed_file, mut_file, fasta_file, output, tstv, sim_num, vep_call:
             regions.append(line)
 
     for i in range(sim_num):
+        # code goes here
         # create output file names based on the iteration
         file_shell = output + str(i) + '.txt'
         vcf_shell = output + str(i) + '.vcf'
@@ -222,6 +225,10 @@ def vcf_constr(bed_file, mut_file, fasta_file, output, tstv, sim_num, vep_call:
         
         # flag for vep run
         if vep_call:
+
+            if not check_yaml_variable('/projects/AKEY/akey_vol2/cooper/vep-sim/parameters.yaml', 'vep_tool_path'):
+                print('vep_tool_path not found in parameters.yaml')
+                return
             # run vep call on created vcf file
             # current path is just the path for my personal computer
             vep = load_parameter_from_yaml('/projects/AKEY/akey_vol2/cooper/vep-sim/parameters.yaml', 'vep_tool_path')

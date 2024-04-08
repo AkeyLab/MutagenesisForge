@@ -2,14 +2,15 @@ from .sim import sim
 from .stat_utils import synoymous_detected, dNds, total_dNds
 from .exhaustive import exhaustive
 from .transition_transversion import tstv
-from .utils import load_parameter_from_yaml
+from .utils import *
+
 
 import os
 import click
 import numpy as np
 from scipy import stats
 
-from vep_sim.mut_vcf import vcf_constr
+from .mut_vcf import vcf_constr
 
 
 # group cli test options
