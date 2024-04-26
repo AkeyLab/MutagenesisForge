@@ -7,7 +7,7 @@ from collections import defaultdict
 import yaml
 import os
 
-from .utils import load_parameter_from_yaml
+from .utils import load_parameter_from_yaml, check_yaml_variable
 
 # return vcf file of random mutations
 
@@ -226,16 +226,19 @@ def vcf_constr(bed_file, mut_file, fasta_file, output, tstv, sim_num, vep_call):
         # flag for vep run
         if vep_call:
 
-            if not check_yaml_variable('/projects/AKEY/akey_vol2/cooper/vep-sim/parameters.yaml', 'vep_tool_path'):
+            if not check_yaml_variable('../../parameters.yaml', 'vep_tool_path'):
                 print('vep_tool_path not found in parameters.yaml')
                 return
             # run vep call on created vcf file
             # current path is just the path for my personal computer
-            vep = load_parameter_from_yaml('/projects/AKEY/akey_vol2/cooper/vep-sim/parameters.yaml', 'vep_tool_path')
+            vep = load_parameter_from_yaml('../../parameters.yaml', 'vep_tool_path')
             os.system(vep_call)
     
 
-vcf_constr('/projects/AKEY/akey_vol2/huixinx/Projects/01.eGTEx/NWGC/04.fig3/02.exp_mis_to_syn_ratio/step12.problematic.bed', 
-        '/projects/AKEY/akey_vol2/huixinx/Projects/01.eGTEx/NWGC/04.fig3/02.exp_mis_to_syn_ratio/docker_stringent.nwgc.rep2.raw_bb_p_lt_10_8.filtered10.txt',
-        '/projects/AKEY/akey_vol2/References/Genomes/hs37d5/hs37d5.fa',
-        'output.out')
+#vcf_constr('/projects/AKEY/akey_vol2/huixinx/Projects/01.eGTEx/NWGC/04.fig3/02.exp_mis_to_syn_ratio/step12.problematic.bed', 
+#        '/projects/AKEY/akey_vol2/huixinx/Projects/01.eGTEx/NWGC/04.fig3/02.exp_mis_to_syn_ratio/docker_stringent.nwgc.rep2.raw_bb_p_lt_10_8.filtered10.txt',
+#        '/projects/AKEY/akey_vol2/References/Genomes/hs37d5/hs37d5.fa',
+#        'output.out')
+
+if __name__ == "__main__":
+    pass

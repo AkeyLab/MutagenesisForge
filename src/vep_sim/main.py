@@ -1,17 +1,10 @@
-from .sim import sim
-from .stat_utils import synoymous_detected, dNds, total_dNds
-from .exhaustive import exhaustive
-from .transition_transversion import tstv
-from .utils import *
-
-
-import os
+# from .utils import *
 import click
-import numpy as np
-from scipy import stats
-
+#from scipy import stats
 from .mut_vcf import vcf_constr
-
+from .stat_utils import synoymous_detected, dNds, total_dNds
+from .transition_transversion import tstv
+from .exhaustive import exhaustive
 
 # group cli test options
 @click.group()
@@ -55,7 +48,7 @@ def cli():
     default = False,
     help='run vep call'
 )
-def vcf_construction(vcf, bed, fasta, output, tstv, sims, vep_call):
+def vcf_contruction(vcf, bed, fasta, output, tstv, sims, vep_call):
     click.echo('vcf construction started')
     vcf_constr(bed, vcf, fasta, output, tstv, sims, vep_call)
     print("vcf construction complete")
