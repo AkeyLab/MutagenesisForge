@@ -130,8 +130,6 @@ def get_random_mut(before_base, after_base, ref_base, regions, fasta, tstv):
                 alt = str(np.random.choice(['T', 'A', 'G'], p=[tstv/(tstv+2), 1/(tstv+2), 1/(tstv+2)]))
             return random_chr, random_pos, ref_base, alt
 
-print(get_random_mut('A', 'C', 'T', regions, fasta_file, 2.0))
-
 
 def create_vcf_file(input_file, output_file):
 
