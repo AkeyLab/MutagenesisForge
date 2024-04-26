@@ -22,4 +22,5 @@ def update_yaml_variable(filename, variable, value):
         params = yaml.safe_load(file)
         if variable in params:
             params[variable] = value
-            with open 
+            with open:
+                return

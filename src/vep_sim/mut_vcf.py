@@ -7,7 +7,7 @@ from collections import defaultdict
 import yaml
 import os
 
-from .utils import *
+from .utils import load_parameter_from_yaml
 
 # return vcf file of random mutations
 
