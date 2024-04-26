@@ -47,9 +47,9 @@ def get_trinucleotide_context(chrom, pos, fasta_file):
 
     return allele_before_position, allele_at_position, allele_after_position
 
-fasta = '/projects/AKEY/akey_vol2/References/Genomes/hs37d5/hs37d5.fa'
-fasta_file = pysam.Fastafile(fasta)
-print(get_trinucleotide_context('12', 109845669, fasta_file))
+#fasta = '/projects/AKEY/akey_vol2/References/Genomes/hs37d5/hs37d5.fa'
+#fasta_file = pysam.Fastafile(fasta)
+#print(get_trinucleotide_context('12', 109845669, fasta_file))
 
 
 #get_trinucleotide_context("chr1", 100, pysam.Fastafile("test.fa"))
@@ -63,7 +63,7 @@ def get_base(fasta, chrom: str, position: str):
     # want surrounding two bases, fasta is zero indexed while position is unit
     base = fasta.fetch(chrom, pos-1, pos).upper()
     return base
-print(get_base(fasta_file, '12', '109845669'))
+#print(get_base(fasta_file, '12', '109845669'))
 
 #is working
 def get_random_position_in_regions(regions):
@@ -75,14 +75,14 @@ def get_random_position_in_regions(regions):
     pos = np.random.randint(region_start, region_end)
     return region.split()[0], pos
 
-input_bed_file = '/projects/AKEY/akey_vol2/huixinx/Projects/01.eGTEx/NWGC/04.fig3/02.exp_mis_to_syn_ratio/step12.problematic.bed'
+#input_bed_file = '/projects/AKEY/akey_vol2/huixinx/Projects/01.eGTEx/NWGC/04.fig3/02.exp_mis_to_syn_ratio/step12.problematic.bed'
 
-regions = []
-with my_open(input_bed_file, 'r') as f:
-    for line in f:    
-        line = line.strip()
-        regions.append(line)
-print(get_random_position_in_regions(regions))
+#regions = []
+#with my_open(input_bed_file, 'r') as f:
+#    for line in f:    
+#        line = line.strip()
+#        regions.append(line)
+#print(get_random_position_in_regions(regions))
 
 
 def is_random_pos_wanted(fasta, random_chr, random_pos, before_base, after_base, ref_base):
