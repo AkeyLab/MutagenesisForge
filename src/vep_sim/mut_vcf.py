@@ -165,17 +165,22 @@ def create_vcf_file(input_file, output_file):
                 f.write(variant_dict[chrom][pos])
 
 
-def load_parameter_from_yaml(file_path, parameter_name):
-    with open(file_path, 'r') as file:
-        params = yaml.safe_load(file)
-        if parameter_name in params:
-            return params[parameter_name]
-        else:
-            print(f"Parameter '{parameter_name}' not found in {file_path}")
-            return None
-
-
 def vcf_constr(bed_file, mut_file, fasta_file, output, tstv, sim_num, vep_call):
+    """
+    Given a bed file, mutation file, fasta file, output file, transition-transversion ratio, and number of simulations, create a vcf file of random mutations
+
+    Parameters:
+        bed_file (str): path to bed file
+        mut_file (str): path to vcf file
+        fasta_file (str): path to fasta file
+        output (str): output file name
+        tstv (float): transition-transversion ratio
+        sim_num (int): number of simulations
+        vep_call (bool): run vep call
+
+    Returns:
+        None (creates a vcf file of random mutations)
+    """
     # convert fasta file path into fastafile object
     fasta = pysam.Fastafile(fasta_file)
     
@@ -197,11 +202,6 @@ def vcf_constr(bed_file, mut_file, fasta_file, output, tstv, sim_num, vep_call):
             chr_pos_dict = {}
             # count = 0
             for line in f:
-                ''' this is for testing purposes
-                count += 1
-                if count > 30:
-                    break
-                    '''
                 if line.startswith('#'):
                     continue
                 line = line.strip().split()
@@ -231,12 +231,9 @@ def vcf_constr(bed_file, mut_file, fasta_file, output, tstv, sim_num, vep_call):
             # current path is just the path for my personal computer
             vep = load_parameter_from_yaml('../../parameters.yaml', 'vep_tool_path')
             os.system(vep_call)
-    
 
-#vcf_constr('/projects/AKEY/akey_vol2/huixinx/Projects/01.eGTEx/NWGC/04.fig3/02.exp_mis_to_syn_ratio/step12.problematic.bed', 
-#        '/projects/AKEY/akey_vol2/huixinx/Projects/01.eGTEx/NWGC/04.fig3/02.exp_mis_to_syn_ratio/docker_stringent.nwgc.rep2.raw_bb_p_lt_10_8.filtered10.txt',
-#        '/projects/AKEY/akey_vol2/References/Genomes/hs37d5/hs37d5.fa',
-#        'output.out')
+            # TODO: alter the vep_call to include the vcf_shell and unique output file name 
+
 
 if __name__ == "__main__":
     pass
