@@ -9,12 +9,9 @@ import os
 
 from .utils import load_parameter_from_yaml, check_yaml_variable
 
-# return vcf file of random mutations
-
-# for vep call, use a combination of yaml input and user input for the files run through vep
-# ex. yaml input then remove -o and -i and replace with user input through click via main.py
-# need to include more input flags potentially
-
+"""
+This module contains functions for creating a vcf file of random mutations.
+"""
 
 @contextmanager
 def my_open(filename: str, mode: str):
@@ -37,8 +34,7 @@ def get_trinucleotide_context(chrom, pos, fasta_file):
         fasta_file (pysam.Fastafile): Fastafile object
 
     Returns:
-        tuple: alleles at the position before, at, and after the specified position
-    
+        tuple: alleles at the position before, at, and after the specified position 
     """
 
     # Fetch allele at the specified position
@@ -225,6 +221,22 @@ def load_parameter_from_yaml(file_path, parameter_name):
 
 
 def vcf_constr(bed_file, mut_file, fasta_file, output, tstv, sim_num, vep_call):
+    """
+    Create a vcf file of random mutations given a bed file, mutation file, fasta file, output
+    file, transition-transversion ratio, number of simulations, and whether to run vep call.
+
+    Parameters:
+        bed_file (str): path to bed file
+        mut_file (str): path to mutation file
+        fasta_file (str): path to fasta file
+        output (str): output file name
+        tstv (float): transition-transversion ratio
+        sim_num (int): number of simulations
+        vep_call (bool): run vep call
+
+    Returns:
+        None (creates a vcf file of random mutations)
+    """
     # convert fasta file path into fastafile object
     fasta = pysam.Fastafile(fasta_file)
 
@@ -246,11 +258,6 @@ def vcf_constr(bed_file, mut_file, fasta_file, output, tstv, sim_num, vep_call):
             chr_pos_dict = {}
             # count = 0
             for line in f:
-                """this is for testing purposes
-                count += 1
-                if count > 30:
-                    break
-                """
                 if line.startswith("#"):
                     continue
                 line = line.strip().split()
@@ -292,11 +299,6 @@ def vcf_constr(bed_file, mut_file, fasta_file, output, tstv, sim_num, vep_call):
             vep = load_parameter_from_yaml("../../parameters.yaml", "vep_tool_path")
             os.system(vep_call)
 
-
-# vcf_constr('/projects/AKEY/akey_vol2/huixinx/Projects/01.eGTEx/NWGC/04.fig3/02.exp_mis_to_syn_ratio/step12.problematic.bed',
-#        '/projects/AKEY/akey_vol2/huixinx/Projects/01.eGTEx/NWGC/04.fig3/02.exp_mis_to_syn_ratio/docker_stringent.nwgc.rep2.raw_bb_p_lt_10_8.filtered10.txt',
-#        '/projects/AKEY/akey_vol2/References/Genomes/hs37d5/hs37d5.fa',
-#        'output.out')
 
 if __name__ == "__main__":
     pass
