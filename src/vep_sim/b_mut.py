@@ -13,6 +13,7 @@ from .utils import load_parameter_from_yaml, check_yaml_variable
 This module contains functions for creating a vcf file of random mutations.
 """
 
+
 @contextmanager
 def my_open(filename: str, mode: str):
     """A wrapper for open/gzip.open logic as a context manager"""
@@ -27,14 +28,14 @@ def my_open(filename: str, mode: str):
 def get_trinucleotide_context(chrom, pos, fasta_file):
     """
     Gets the trinucleotide alleles at the specified position.
-    
+
     Parameters:
         chrom (str): chromosome
         pos (int): position
         fasta_file (pysam.Fastafile): Fastafile object
 
     Returns:
-        tuple: alleles at the position before, at, and after the specified position 
+        tuple: alleles at the position before, at, and after the specified position
     """
 
     # Fetch allele at the specified position
@@ -175,7 +176,7 @@ def create_vcf_file(input_file, output_file):
     Parameters:
         input_file (str): input file path
         output_file (str): output vcf file path
-    
+
     Returns:
         None (writes to output vcf file)
     """
@@ -210,14 +211,24 @@ def create_vcf_file(input_file, output_file):
                 f.write(variant_dict[chrom][pos])
 
 
-def load_parameter_from_yaml(file_path, parameter_name):
-    with open(file_path, "r") as file:
-        params = yaml.safe_load(file)
-        if parameter_name in params:
-            return params[parameter_name]
-        else:
-            print(f"Parameter '{parameter_name}' not found in {file_path}")
-            return None
+# Removed the following code from the function vcf_constr:
+#     yaml finding because it is in utils
+
+
+def indy_vep(vep_string, num, output):
+    """
+    Individualizes each vep call output file.
+    """
+    motif = "-o"
+    motif_index = vep_string.find(motif)
+    return (
+        vep_string[:motif_index]
+        + " "
+        + output
+        + str(num)
+        + " .vep"
+        + vep_string[motif_index:]
+    )
 
 
 def vcf_constr(bed_file, mut_file, fasta_file, output, tstv, sim_num, vep_call):
@@ -296,8 +307,12 @@ def vcf_constr(bed_file, mut_file, fasta_file, output, tstv, sim_num, vep_call):
                 return
             # run vep call on created vcf file
             # current path is just the path for my personal computer
-            vep = load_parameter_from_yaml("../../parameters.yaml", "vep_tool_path")
-            os.system(vep_call)
+            vep = indy_vep(
+                load_parameter_from_yaml("../../parameters.yaml", "vep_tool_path"),
+                i,
+                output,
+            )
+            os.system(vep)
 
 
 if __name__ == "__main__":

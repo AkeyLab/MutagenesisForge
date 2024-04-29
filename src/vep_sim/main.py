@@ -49,6 +49,23 @@ def cli():
     help='run vep call'
 )
 def vcf_contruction(vcf, bed, fasta, output, tstv, sims, vep_call):
+    """
+    Given a bed file, mutation file, fasta file, output
+    file, transition-transversion ratio, and number of simulations,
+    create a vcf file of random mutations
+
+    Parameters:
+        bed (str): path to bed file
+        vcf (str): path to vcf file
+        fasta (str): path to fasta file
+        output (str): output file name
+        tstv (float): transition-transversion ratio
+        sims (int): number of simulations
+        vep_call (bool): run vep call
+
+    Returns:
+        None (creates a vcf file of random mutations)
+    """
     click.echo('vcf construction started')
     vcf_constr(bed, vcf, fasta, output, tstv, sims, vep_call)
     print("vcf construction complete")
@@ -79,6 +96,17 @@ is_flag=True,
 help='Calculate dN/dS by gene'
 )
 def exhaustive_method(fasta, by_read = False):
+    """
+    Given a fasta file, calculate the dN/dS ratio using exhaustive method 
+    where each permutation of the codon is tested
+
+    Parameters:
+        fasta (str): path to fasta file
+        by_read (bool): calculate dN/dS by gene
+    
+    Returns:
+        None (prints dN/dS ratio)
+    """
     if by_read:
         click.echo("Exhaustive model ratio of each gene")
         dnds = exhaustive(fasta, by_read=True)
@@ -98,6 +126,9 @@ def exhaustive_method(fasta, by_read = False):
     help='Path to vcf file',
 )
 def tstv_test(vcf):
+    """
+    TODO: may be removed in futurep
+    """
     click.echo('Transition-transversion model started')
     click.echo(f"tstv = {tstv(vcf)}")
     print("Transition-transversion model finished")
