@@ -18,6 +18,6 @@ CREATE RANDOMIZED SIMULATIONS OF VARIANT EFFECT PREDICTIONS FROM AN INPUT VCF FI
 
 ## installation
 ```bash
-pip install vep-sim
+pip install git+https://https://github.com/AkeyLab/vep-sim
 ```
 
