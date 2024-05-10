@@ -1,7 +1,7 @@
 # from .utils import *
 import click
 #from scipy import stats
-from .mut_vcf import vcf_constr
+from .random_vcf import vcf_constr
 from .stat_utils import synoymous_detected, dNds, total_dNds
 from .transition_transversion import tstv
 from .exhaustive import exhaustive
@@ -48,7 +48,7 @@ def cli():
     default = False,
     help='run vep call'
 )
-def vcf_contruction(vcf, bed, fasta, output, tstv, sims, vep_call):
+def vcf_construction(vcf, bed, fasta, output, tstv, sims, vep_call):
     """
     Given a bed file, mutation file, fasta file, output
     file, transition-transversion ratio, and number of simulations,
