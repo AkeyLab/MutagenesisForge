@@ -40,7 +40,7 @@ def cli():
 )
 @click.option(
     '--sims',
-    default = 10,
+    default = 1,
     help='number of simulations'
 )
 @click.option(
@@ -95,7 +95,7 @@ def vcf_construction(vcf, bed, fasta, output, tstv, sims, vep_call):
 is_flag=True,
 help='Calculate dN/dS by gene'
 )
-def exhaustive_method(fasta, by_read = False):
+def exhaust(fasta, by_read = False):
     """
     Given a fasta file, calculate the dN/dS ratio using exhaustive method 
     where each permutation of the codon is tested

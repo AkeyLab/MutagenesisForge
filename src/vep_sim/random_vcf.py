@@ -199,7 +199,6 @@ def create_vcf_file(input_file, output_file):
         ref = variant_data[2]
         alt = variant_data[-1]
         vcf_line = f"{chrom}\t{pos}\t.\t{ref}\t{alt}\t.\t.\t.\tGT\t0/1\n"
-        #print(vcf_line) debugging remnant
         variant_dict[chrom][pos] = vcf_line
         vcf_content += vcf_line
     # write the vcf content to the output file
@@ -209,10 +208,6 @@ def create_vcf_file(input_file, output_file):
         for chrom in sorted(variant_dict.keys()):
             for pos in sorted(variant_dict[chrom].keys()):
                 f.write(variant_dict[chrom][pos])
-
-
-# Removed the following code from the function vcf_constr:
-#     yaml finding because it is in utils
 
 
 def indy_vep(vep_string, num, output):

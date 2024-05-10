@@ -4,8 +4,8 @@ from io import StringIO
 
 def synoymous_detected(line):
     """Return True if the variant is synonymous."""
-    df = pd.read_csv(StringIO(line), sep='\t')
-    if df['Consequence'] == 'synonymous_variant':
+    df = pd.read_csv(StringIO(line), sep="\t")
+    if df["Consequence"] == "synonymous_variant":
         return True
     return False
 
@@ -16,7 +16,7 @@ def total_dNds(veps):
     dS = 0
     for vep in veps:
         for line in vep:
-            if line.startswith('#'):
+            if line.startswith("#"):
                 continue
             if synoymous_detected(line):
                 dS += 1
@@ -24,7 +24,7 @@ def total_dNds(veps):
                 dN += 1
     if dS == 0:
         return 0
-    return dN/dS
+    return dN / dS
 
 
 def dNds(vep):
@@ -32,7 +32,7 @@ def dNds(vep):
     dN = 0
     dS = 0
     for line in vep:
-        if line.startswith('#'):
+        if line.startswith("#"):
             continue
         if synoymous_detected(line):
             dS += 1
@@ -40,5 +40,4 @@ def dNds(vep):
             dN += 1
     if dS == 0:
         return 0
-    return dN/dS
-
+    return dN / dS

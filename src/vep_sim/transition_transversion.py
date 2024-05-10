@@ -1,14 +1,14 @@
 def tstv(vcf):
 
-    transition = ['AG', 'GA', 'CT', 'TC']
-    transversion = ['AC', 'CA', 'AT', 'TA', 'GC', 'CG', 'GT', 'TG']
+    transition = ["AG", "GA", "CT", "TC"]
+    transversion = ["AC", "CA", "AT", "TA", "GC", "CG", "GT", "TG"]
 
     transition_count = 0
     transversion_count = 0
-    
-    with open(vcf, 'r') as f:
+
+    with open(vcf, "r") as f:
         for line in f:
-            if line.startswith('#'):
+            if line.startswith("#"):
                 continue
             line = line.strip().split()
             ref_base = line[3]
