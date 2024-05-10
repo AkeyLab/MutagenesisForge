@@ -44,7 +44,7 @@ tstv calculation is done by a mean of each read's tstv (default = False)
 
 Example usage:
 ```bash
-vep-sim exhast --fasta ex.fa
+vep-sim exhaust --fasta ex.fa
 ```
 returns tstv value of each permutation of all codon positions of fasta file ex.fa
 
