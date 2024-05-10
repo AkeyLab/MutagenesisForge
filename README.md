@@ -14,17 +14,17 @@ Given input files, a VCF (variant call format) file is generated of randomized m
 #### Inputs
 - vcf:
 vcf file path of original mutations
-- bed
+- bed:
 bed file path to be used 
-- fasta
+- fasta:
 fasta file path used 
-- sims
+- sims:
 number of vcf files generated (default = 1)
-- tstv
+- tstv:
 transition-transversion ratio used for mutation generation (default = 2)
-- output
+- output:
 prefix for output file (default = 'output.vcf')
-- vep-call
+- vep-call:
 boolean which determines if Variant Effect Predictor (VEP) software is to be run on each of the created VCF files.
 
 Example usage:
@@ -39,7 +39,7 @@ Given an input fasta file, a transition-transversion rate is calculated based of
 #### Inputs
 - fasta:
 fasta file path used
-- by-read
+- by-read:
 tstv calculation is done by a mean of each read's tstv (default = False)
 
 Example usage:
