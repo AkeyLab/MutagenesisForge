@@ -1,4 +1,4 @@
-# vep-sim
+# MutagenesisForge
 CLI and python package of tools written to work with randomized mutation simulations to generate variant effects and calculate simulated transition-transversion ratios
 
 ## installation
