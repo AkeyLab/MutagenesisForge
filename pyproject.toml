@@ -3,7 +3,7 @@ requires = ["poetry-core>=1.1.0"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
-name = "vep-sim"
+name = "MutagenesisForge"
 version = "0.0.3"
 description = "create randomized simulations of variant effect predictions from an input vcf file and run statistics"
 authors = ["Cooper Koers <ck5658@princeton.edu>"]
