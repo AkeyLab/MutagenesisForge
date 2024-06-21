@@ -3,7 +3,7 @@ CLI and python package of tools written to work with randomized mutation simulat
 
 ## installation
 ```bash
-pip install git+https://https://github.com/AkeyLab/vep-sim
+pip install git+https://https://github.com/AkeyLab/MutagenesisForge
 ```
 
 ## Command Line Interface
@@ -29,7 +29,7 @@ boolean which determines if Variant Effect Predictor (VEP) software is to be run
 
 Example usage:
 ```bash
-vep-sim vcf-construction --vcf ex.vcf --bed ex.bed --fasta ex.fa --tstv 2.5 sims 40
+MutagenesisForge vcf-construction --vcf ex.vcf --bed ex.bed --fasta ex.fa --tstv 2.5 sims 40
 ```
 returns vcf file of randomizd mutations generated from random mutation of trinucleotide context of input vcf as found within bed file regions in fasta file
 
@@ -44,7 +44,7 @@ tstv calculation is done by a mean of each read's tstv (default = False)
 
 Example usage:
 ```bash
-vep-sim exhaust --fasta ex.fa
+MutagenesisForge exhaust --fasta ex.fa
 ```
 returns tstv value of each permutation of all codon positions of fasta file ex.fa
 
@@ -57,7 +57,7 @@ vcf file path used
 
 Example usage:
 ```bash
-vep-sim tstv-test ex.vcf
+MutagenesisForge tstv-test ex.vcf
 ```
 returns the transition-transversion ratio of file ex.vcf
 
