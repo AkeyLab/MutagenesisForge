@@ -29,7 +29,7 @@ boolean which determines if Variant Effect Predictor (VEP) software is to be run
 
 Example usage:
 ```bash
-MutagenesisForge vcf-construction --vcf ex.vcf --bed ex.bed --fasta ex.fa --tstv 2.5 sims 40
+MutagenesisForge vcf-construction --vcf ex.vcf --bed ex.bed --fasta ex.fa --tstv 2.5 --sims 40
 ```
 returns vcf file of randomizd mutations generated from random mutation of trinucleotide context of input vcf as found within bed file regions in fasta file
 
