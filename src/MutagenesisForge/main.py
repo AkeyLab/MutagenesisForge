@@ -48,7 +48,7 @@ def cli():
     default = False,
     help='run vep call'
 )
-def vcf_construction(vcf, bed, fasta, output, tstv, sims, vep_call):
+def context(vcf, bed, fasta, output, tstv, sims, vep_call):
     """
     Given a bed file, mutation file, fasta file, output
     file, transition-transversion ratio, and number of simulations,
@@ -125,7 +125,7 @@ def exhaust(fasta, by_read = False):
     prompt='Path to vcf file',
     help='Path to vcf file',
 )
-def tstv_test(vcf):
+def tstv(vcf):
     """
     TODO: may be removed in futurep
     """
