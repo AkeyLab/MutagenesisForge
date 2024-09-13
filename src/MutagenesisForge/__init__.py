@@ -1,2 +1,2 @@
-print("Initializing test vep-sim...")
+print("Initializing MutagenesisForge...")
 
