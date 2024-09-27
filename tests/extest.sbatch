@@ -8,4 +8,6 @@
 ##SBATCH --array=1-10                            # array'd jobs (each job will have $SLURM_ARRAY_TASK_ID)
 ##SBATCH --output=slurm_outs/slurm-%A_%a.out     # where to store and what to name slurm outs
 
-vep-sim exhaustive-method --fasta /projects/AKEY/akey_vol2/References/Genomes/hs37d5/hs37d5.fa --by-read
+MutagenesisForge exhaust --fasta /projects/AKEY/akey_vol2/References/Genomes/hs37d5/hs37d5.fa
+
+MutagenesisForge exhaust --fasta /projects/AKEY/akey_vol2/References/Genomes/hs37d5/hs37d5.fa --by-read
