@@ -29,9 +29,10 @@ def cli():
     help='path to fasta file'
 )
 @click.option(
-    '--tstv',
-    default = 2.0,
-    help='transition-transversion ratio'
+    '--model',
+    type=click.Choice(['random', 'K2P', 'K3P']),
+    default = 'random',
+    help='evolutionary model'
 )
 @click.option(
     '--output',
@@ -48,7 +49,23 @@ def cli():
     default = False,
     help='run vep call'
 )
-def context(vcf, bed, fasta, output, tstv, sims, vep_call):
+@click.option(
+    '--alpha',
+    default = None,
+    help='alpha parameter' 
+)
+@click.option(
+    '--beta',
+    default = None,
+    help='beta parameter'
+)
+@click.option(
+    '--gamma',
+    default = None,
+    help='gamma parameter'
+)
+# context model
+def context(vcf, bed, fasta, output, sims, model, alpha, beta, gamma, vep_call):
     """
     Given a bed file, mutation file, fasta file, output
     file, transition-transversion ratio, and number of simulations,
@@ -67,7 +84,7 @@ def context(vcf, bed, fasta, output, tstv, sims, vep_call):
         None (creates a vcf file of random mutations)
     """
     click.echo('vcf construction started')
-    vcf_constr(bed, vcf, fasta, output, tstv, sims, vep_call)
+    vcf_constr(bed, vcf, fasta, output, sims, vep_call, model, alpha, beta, gamma)
     print("vcf construction complete")
 
     # returning dN/dS values if vep_call is True

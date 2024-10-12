@@ -7,6 +7,7 @@ from collections import defaultdict
 import yaml
 import os
 
+from .models import random_mutation, K2P, K3P
 from .utils import load_parameter_from_yaml, check_yaml_variable
 
 """
@@ -17,12 +18,8 @@ This module contains functions for creating a vcf file of random mutations.
 @contextmanager
 def my_open(filename: str, mode: str):
     """A wrapper for open/gzip.open logic as a context manager"""
-    if filename.endswith(".gz"):
-        open_file = gzip.open(filename, mode + "t")
-    else:
-        open_file = open(filename, mode)
-    yield open_file
-    open_file.close()
+    with (gzip.open(filename, mode + "t") if filename.endswith(".gz") else open(filename, mode)) as open_file:
+        yield open_file
 
 
 def get_trinucleotide_context(chrom, pos, fasta_file):
@@ -38,56 +35,44 @@ def get_trinucleotide_context(chrom, pos, fasta_file):
         tuple: alleles at the position before, at, and after the specified position
     """
 
-    # Fetch allele at the specified position
-    allele_at_position = fasta_file.fetch(chrom, pos - 1, pos)
-
-    # Fetch allele at the position before
-    allele_before_position = fasta_file.fetch(chrom, pos - 2, pos - 1)
-
-    # Fetch allele at the position after
-    allele_after_position = fasta_file.fetch(chrom, pos, pos + 1)
-
-    return allele_before_position, allele_at_position, allele_after_position
-
-
-def get_base(fasta, chrom: str, position: str):
-    """
-    Returns the reference base before and after provided chrom, position.
-    """
-    pos = int(position)
-    base = fasta.fetch(chrom, pos - 1, pos).upper()
-    return base
-
+    return (
+        fasta_file.fetch(chrom, pos - 2, pos - 1),
+        fasta_file.fetch(chrom, pos - 1, pos),
+        fasta_file.fetch(chrom, pos, pos + 1)
+    )
 
 def get_random_position_in_regions(regions):
     """
-    Returns a random position in the regions provided in bed file.
+    Returns a random position within randomly selected region.
 
-    Parameters:
+     Parameters:
         regions (list): list of regions in the bed file
 
     Returns:
         tuple: chromosome and position
     """
-    # region is a string, e.g. "chr1 100 200"
-    # return a random position in the region
     region = regions[np.random.randint(0, len(regions))]
-    region_start = int(region.split()[1])
-    region_end = int(region.split()[2])
-    pos = np.random.randint(region_start, region_end)
-    return region.split()[0], pos
+    region_start, region_end = map(int, region.split()[1:3])
+    return region.split()[0], np.random.randint(region_start, region_end)
+
+
+def get_base(fasta, chrom: str, pos: int):
+    """
+    Returns the reference base before and after provided chrom, position.
+    """
+    return fasta.fetch(chrom, pos - 1, pos).upper()
 
 
 def is_random_pos_wanted(
-    fasta, random_chr, random_pos, before_base, after_base, ref_base
+    fasta, chrom, pos, before_base, after_base, ref_base
 ):
     """
     Determines whether the random position has same trinucleotide context.
 
     Parameters:
         fasta (pysam.Fastafile): Fastafile object
-        random_chr (str): chromosome
-        random_pos (int): position
+        chrom (str): chromosome
+        pos (int): position
         before_base (str): base before the position
         after_base (str): base after the position
         ref_base (str): reference base
@@ -97,19 +82,14 @@ def is_random_pos_wanted(
     """
     # return True if the random position is wanted, False otherwise
     # wanted means the trinucleotide context is the same, and the before and after bases are the same
-    pos_base = get_base(fasta, random_chr, random_pos)
-    if pos_base != ref_base:
-        return False
-    pos_before_base = get_base(fasta, random_chr, random_pos - 1)
-    if pos_before_base != before_base:
-        return False
-    pos_after_base = get_base(fasta, random_chr, random_pos + 1)
-    if pos_after_base != after_base:
-        return False
-    return True
+    pos_before = get_base(fasta, chrom, pos - 1)
+    pos_after = get_base(fasta, chrom, pos + 1)
+    pos_base = get_base(fasta, chrom, pos)
+    return (pos_base == ref_base) and (pos_before == before_base) and (pos_after == after_base)
 
 
-def get_random_mut(before_base, after_base, ref_base, regions, fasta, tstv):
+def get_random_mut(before_base, after_base, ref_base, regions, fasta, alpha, beta, gamma, model):
+
     """
     Returns a random mutation in a random region that matches the specified criteria.
 
@@ -119,11 +99,21 @@ def get_random_mut(before_base, after_base, ref_base, regions, fasta, tstv):
         ref_base (str): reference base
         regions (list): list of regions in the bed file
         fasta (pysam.Fastafile): Fastafile object
-        tstv (float): transition-transversion ratio
+        model (str): evolutionary model
+        alpha (float): transition probability
+        beta (float): transversion probability
+        gamma (float): transversion probability
 
     Returns:
         tuple: chromosome, position, reference base, alternative base
     """
+
+    # list of evolutionary models
+    models = ["random", "K2P", "K3P"]
+    # check if the model is valid
+    if model not in models:
+        raise ValueError(f"Model {model} is not valid. Choose from {models}")
+
     # get a random position from the regions
     is_wanted = False
     while not is_wanted:
@@ -134,38 +124,19 @@ def get_random_mut(before_base, after_base, ref_base, regions, fasta, tstv):
         is_wanted = is_random_pos_wanted(
             fasta, random_chr, random_pos, before_base, after_base, ref_base
         )
+
         # if the trinucleotide context is the same, get a random alternative allele
         if is_wanted:
-            # p(s) = tstv/(tstv+2)
-            # implementation of tstv ratio
-            if pos_base == "A":
-                alt = str(
-                    np.random.choice(
-                        ["G", "T", "C"],
-                        p=[tstv / (tstv + 2), 1 / (tstv + 2), 1 / (tstv + 2)],
-                    )
-                )
-            if pos_base == "G":
-                alt = str(
-                    np.random.choice(
-                        ["A", "T", "C"],
-                        p=[tstv / (tstv + 2), 1 / (tstv + 2), 1 / (tstv + 2)],
-                    )
-                )
-            if pos_base == "T":
-                alt = str(
-                    np.random.choice(
-                        ["C", "A", "G"],
-                        p=[tstv / (tstv + 2), 1 / (tstv + 2), 1 / (tstv + 2)],
-                    )
-                )
-            if pos_base == "C":
-                alt = str(
-                    np.random.choice(
-                        ["T", "A", "G"],
-                        p=[tstv / (tstv + 2), 1 / (tstv + 2), 1 / (tstv + 2)],
-                    )
-                )
+
+            if model == "random":
+                alt = random_mutation(ref_base)
+
+            if model == "K2P":
+                alt = K2P(ref_base, alpha, beta)
+            
+            if model == "K3P":
+                alt = K3P(ref_base, alpha, beta, gamma)
+
             return random_chr, random_pos, ref_base, alt
 
 
@@ -212,21 +183,14 @@ def create_vcf_file(input_file, output_file):
 
 def indy_vep(vep_string, num, output):
     """
-    Individualizes each vep call output file.
+    Modift vep call output file to individualize.
     """
-    motif = "-o"
-    motif_index = vep_string.find(motif)
-    return (
-        vep_string[:motif_index]
-        + " "
-        + output
-        + str(num)
-        + " .vep"
-        + vep_string[motif_index:]
-    )
+    return vep_strifng.replace("-o", f" -o {output}{num}.vep ")
 
 
-def vcf_constr(bed_file, mut_file, fasta_file, output, tstv, sim_num, vep_call):
+def vcf_constr(bed_file, mut_file, fasta_file, output,
+                sim_num, vep_call,
+                model = "random", alpha = None, beta = None, gamma = None):
     """
     Create a vcf file of random mutations given a bed file, mutation file, fasta file, output
     file, transition-transversion ratio, number of simulations, and whether to run vep call.
@@ -276,8 +240,9 @@ def vcf_constr(bed_file, mut_file, fasta_file, output, tstv, sim_num, vep_call):
                 # find randomized mutations
                 add_one_random_mut = False
                 while not add_one_random_mut:
+
                     random_chr, random_pos, ref_base, alt = get_random_mut(
-                        before_base, after_base, ref_base, regions, fasta, tstv
+                        before_base, after_base, ref_base, regions, fasta, alpha, beta, gamma, model
                     )
                     chr_pos = random_chr + "_" + str(random_pos)
                     if chr_pos not in chr_pos_dict:
