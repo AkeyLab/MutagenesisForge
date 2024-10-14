@@ -39,9 +39,12 @@ def K2P(base, alpha, beta):
     T    [beta, beta, alpha, 0]
 
     """
+    
+    alpha = float(alpha)
+    beta = float(beta)
 
     # ensure alpha + beta*2 = 1
-    if alpha + beta*2 != 1:
+    if not np.isclose(alpha + beta*2, 1):
         raise ValueError('alpha + 2*beta must equal')
 
     # transition-transversion probabilities based on tstv ratio
@@ -76,8 +79,12 @@ def K3P(base, alpha, beta, gamma):
         T    [gamma, beta, alpha, 0]
     """
 
+    alpha = float(alpha)
+    beta = float(beta)
+    gamma = float(gamma)
+
     # ensure alpha + beta + gamma = 1
-    if alpha + beta + gamma != 1:
+    if not np.isclose(alpha + beta + gamma, 1):
         raise ValueError('alpha + beta + gamma must equal 1')
 
     # transition-transversion probabilities
@@ -89,5 +96,3 @@ def K3P(base, alpha, beta, gamma):
     }
 
     return np.random.choice(bases, p=[matrix_model[base][b] for b in bases])
-
-K3P('A', 0.9, 0.05, 0.05)
