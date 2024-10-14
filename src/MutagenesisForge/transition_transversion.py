@@ -1,3 +1,7 @@
+"""
+this module contain functions for calculating transition/transversion ratio
+"""
+
 def tstv(vcf):
 
     transition = ["AG", "GA", "CT", "TC"]

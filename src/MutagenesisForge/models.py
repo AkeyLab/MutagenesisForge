@@ -1,5 +1,9 @@
 import numpy as np
 
+"""
+this module contains evolutionary models for simulating mutations
+"""
+
 bases = ['A', 'C', 'G', 'T']
 
 def random_mutation(base):

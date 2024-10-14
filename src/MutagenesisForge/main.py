@@ -6,6 +6,10 @@ from .stat_utils import synoymous_detected, dNds, total_dNds
 from .transition_transversion import tstv
 from .exhaustive import exhaustive
 
+"""
+this file is the main entry point for the MutagenesisForge package
+"""
+
 # group cli test options
 @click.group()
 def cli():

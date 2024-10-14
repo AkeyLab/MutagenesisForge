@@ -1,6 +1,9 @@
 import pandas as pd
 from io import StringIO
 
+"""
+this module contains functions for parsing and analyzing vep output
+"""
 
 def synoymous_detected(line):
     """Return True if the variant is synonymous."""

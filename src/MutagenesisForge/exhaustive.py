@@ -2,6 +2,9 @@ import collections
 import pysam
 import numpy as np
 
+"""
+this module contains evolutionary models for simulating mutations
+"""
 
 def exhaustive(path, by_read=False):
     codon_to_amino = {
