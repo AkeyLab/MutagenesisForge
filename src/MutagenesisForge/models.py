@@ -4,7 +4,8 @@ import numpy as np
 this module contains evolutionary models for simulating mutations
 """
 
-bases = ['A', 'C', 'G', 'T']
+bases = ["A", "C", "G", "T"]
+
 
 def random_mutation(base):
     """
@@ -17,6 +18,7 @@ def random_mutation(base):
         str: mutated base
     """
     return np.random.choice([b for b in bases if b != base])
+
 
 def K2P(base, alpha, beta):
     """
@@ -39,23 +41,24 @@ def K2P(base, alpha, beta):
     T    [beta, beta, alpha, 0]
 
     """
-    
+
     alpha = float(alpha)
     beta = float(beta)
 
     # ensure alpha + beta*2 = 1
-    if not np.isclose(alpha + beta*2, 1):
-        raise ValueError('alpha + 2*beta must equal')
+    if not np.isclose(alpha + beta * 2, 1):
+        raise ValueError("alpha + 2*beta must equal")
 
     # transition-transversion probabilities based on tstv ratio
     matrix_model = {
-        'A': {'A': 0, 'C': alpha, 'G': beta, 'T': beta},
-        'C': {'A': alpha, 'C': 0, 'G': beta, 'T': beta},
-        'G': {'A': beta, 'C': beta, 'G': 0, 'T': alpha},
-        'T': {'A': beta, 'C': beta, 'G': alpha, 'T': 0}
+        "A": {"A": 0, "C": alpha, "G": beta, "T": beta},
+        "C": {"A": alpha, "C": 0, "G": beta, "T": beta},
+        "G": {"A": beta, "C": beta, "G": 0, "T": alpha},
+        "T": {"A": beta, "C": beta, "G": alpha, "T": 0},
     }
-   
+
     return np.random.choice(bases, p=[matrix_model[base][b] for b in bases])
+
 
 def K3P(base, alpha, beta, gamma):
     """
@@ -71,7 +74,7 @@ def K3P(base, alpha, beta, gamma):
         str: mutated base
 
     Kimura 3-parameter model:
-    
+
             A   C    G    T
         A    [0, alpha, beta, gamma]
         C    [alpha, 0, gamma, beta]
@@ -85,14 +88,14 @@ def K3P(base, alpha, beta, gamma):
 
     # ensure alpha + beta + gamma = 1
     if not np.isclose(alpha + beta + gamma, 1):
-        raise ValueError('alpha + beta + gamma must equal 1')
+        raise ValueError("alpha + beta + gamma must equal 1")
 
     # transition-transversion probabilities
     matrix_model = {
-        'A': {'A': 0, 'C': alpha, 'G': beta, 'T': gamma},
-        'C': {'A': alpha, 'C': 0, 'G': gamma, 'T': beta},
-        'G': {'A': beta, 'C': gamma, 'G': 0, 'T': alpha},
-        'T': {'A': gamma, 'C': beta, 'G': alpha, 'T': 0}
+        "A": {"A": 0, "C": alpha, "G": beta, "T": gamma},
+        "C": {"A": alpha, "C": 0, "G": gamma, "T": beta},
+        "G": {"A": beta, "C": gamma, "G": 0, "T": alpha},
+        "T": {"A": gamma, "C": beta, "G": alpha, "T": 0},
     }
 
     return np.random.choice(bases, p=[matrix_model[base][b] for b in bases])

@@ -185,7 +185,7 @@ def indy_vep(vep_string, num, output):
     """
     Modift vep call output file to individualize.
     """
-    return vep_strifng.replace("-o", f" -o {output}{num}.vep ")
+    return vep_string.replace("-o", f" -o {output}{num}.vep ")
 
 
 def vcf_constr(bed_file, mut_file, fasta_file, output,
