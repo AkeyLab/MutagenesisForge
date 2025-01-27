@@ -262,16 +262,20 @@ def vcf_constr(bed_file, mut_file, fasta_file, output,
         # flag for vep run
         if vep_call:
 
-            if not check_yaml_variable("../../parameters.yaml", "vep_tool_path"):
+            if not check_yaml_variable("parameters.yaml", "vep_tool_path"):
                 print("vep_tool_path not found in parameters.yaml")
                 return
             # run vep call on created vcf file
             # current path is just the path for my personal computer
+            """
             vep = indy_vep(
-                load_parameter_from_yaml("../../parameters.yaml", "vep_tool_path"),
+                load_parameter_from_yaml("parameters.yaml", "vep_tool_path"),
                 i,
                 output,
             )
+            """
+            vep = load_parameter_from_yaml("parameters.yaml", "vep_tool_path") + " -i " + vcf_shell + " -o " + output + str(sim_num)
+            print(vep)
             os.system(vep)
 
 
