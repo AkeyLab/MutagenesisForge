@@ -68,8 +68,14 @@ def cli():
     default = None,
     help='gamma parameter'
 )
+@click.option(
+    '--context_model',
+    type = click.Choice(['blind', 'ra', 'ra_ba', 'ra_aa', 'codon']),
+    default = 'codon',
+    help='context model used for mutation'
+)
 # context model
-def context(vcf, bed, fasta, output, sims, model, alpha, beta, gamma, vep_call):
+def context(vcf, bed, fasta, output, sims, model, alpha, beta, gamma, vep_call, context_model):
     """
     Given a bed file, mutation file, fasta file, output
     file, transition-transversion ratio, and number of simulations,
@@ -88,7 +94,7 @@ def context(vcf, bed, fasta, output, sims, model, alpha, beta, gamma, vep_call):
         None (creates a vcf file of random mutations)
     """
     click.echo('vcf construction started')
-    vcf_constr(bed, vcf, fasta, output, sims, vep_call, model, alpha, beta, gamma)
+    vcf_constr(bed, vcf, fasta, output, sims, vep_call, model, alpha, beta, gamma, context_model)
     print("vcf construction complete")
 
     # returning dN/dS values if vep_call is True

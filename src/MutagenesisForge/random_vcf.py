@@ -64,7 +64,7 @@ def get_base(fasta, chrom: str, pos: int):
 
 
 def is_random_pos_wanted(
-    fasta, chrom, pos, before_base, after_base, ref_base
+    fasta, chrom, pos, before_base, after_base, ref_base, context_model
 ):
     """
     Determines whether the random position has same trinucleotide context.
@@ -76,19 +76,39 @@ def is_random_pos_wanted(
         before_base (str): base before the position
         after_base (str): base after the position
         ref_base (str): reference base
+        context_model (str): context model
 
     Returns:
         bool: True if the random position is wanted, False otherwise
     """
-    # return True if the random position is wanted, False otherwise
-    # wanted means the trinucleotide context is the same, and the before and after bases are the same
     pos_before = get_base(fasta, chrom, pos - 1)
     pos_after = get_base(fasta, chrom, pos + 1)
     pos_base = get_base(fasta, chrom, pos)
-    return (pos_base == ref_base) and (pos_before == before_base) and (pos_after == after_base)
+    # return True if the random position is wanted, False otherwise
+    # wanted means the trinucleotide context is the same, and the before and after bases are the same
+    
+    # context model options
+
+    # blind: no context model
+    if context_model == "blind":
+        return True
+    # ra: reference allele context model
+    if context_model == "ra":
+        return (pos_base == ref_base)
+    # ra_ba: reference allele and before allele context model
+    if context_model == "ra_ba":
+        return (pos_base == ref_base) and (pos_before == before_base)
+    # ra_aa: reference allele and after allele context model
+    if context_model == "ra_aa":
+        return (pos_base == ref_base) and (pos_after == after_base)
+    # codon: codon context model
+    if context_model == "codon":
+        return (pos_base == ref_base) and (pos_before == before_base) and (pos_after == after_base)
+    else:
+        raise ValueError(f"Context model {context_model} is not valid.")
 
 
-def get_random_mut(before_base, after_base, ref_base, regions, fasta, alpha, beta, gamma, model):
+def get_random_mut(before_base, after_base, ref_base, regions, fasta, alpha, beta, gamma, context_model, model):
 
     """
     Returns a random mutation in a random region that matches the specified criteria.
@@ -122,7 +142,7 @@ def get_random_mut(before_base, after_base, ref_base, regions, fasta, alpha, bet
         pos_base = get_base(fasta, random_chr, random_pos)
         # determine whether the trinucleotide context is the same
         is_wanted = is_random_pos_wanted(
-            fasta, random_chr, random_pos, before_base, after_base, ref_base
+            fasta, random_chr, random_pos, before_base, after_base, ref_base, context_model
         )
 
         # if the trinucleotide context is the same, get a random alternative allele
@@ -190,7 +210,7 @@ def indy_vep(vep_string, num, output):
 
 def vcf_constr(bed_file, mut_file, fasta_file, output,
                 sim_num, vep_call,
-                model = "random", alpha = None, beta = None, gamma = None):
+                model = "random", alpha = None, beta = None, gamma = None, context_model = "codon"):
     """
     Create a vcf file of random mutations given a bed file, mutation file, fasta file, output
     file, transition-transversion ratio, number of simulations, and whether to run vep call.
@@ -242,7 +262,7 @@ def vcf_constr(bed_file, mut_file, fasta_file, output,
                 while not add_one_random_mut:
 
                     random_chr, random_pos, ref_base, alt = get_random_mut(
-                        before_base, after_base, ref_base, regions, fasta, alpha, beta, gamma, model
+                        before_base, after_base, ref_base, regions, fasta, alpha, beta, gamma, model, context_model
                     )
                     chr_pos = random_chr + "_" + str(random_pos)
                     if chr_pos not in chr_pos_dict:
