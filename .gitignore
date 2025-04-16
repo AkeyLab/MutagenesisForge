@@ -8,3 +8,10 @@ della.txt
 *.out
 *.txt
 *.swp
+*.log
+*.Rhistory
+*.Rproj
+*.Rproj.user
+*.Rhistory
+*.RData
+*.Ruserdata
