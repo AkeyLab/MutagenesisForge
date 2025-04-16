@@ -5,3 +5,6 @@ __pycache__
 della.txt
 *.gz
 .Rproj.user
+*.out
+*.txt
+*.swp

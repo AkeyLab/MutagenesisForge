@@ -108,7 +108,7 @@ def is_random_pos_wanted(
         raise ValueError(f"Context model {context_model} is not valid.")
 
 
-def get_random_mut(before_base, after_base, ref_base, regions, fasta, alpha, beta, gamma, context_model, model):
+def get_random_mut(before_base, after_base, ref_base, regions, fasta, context_model, model, alpha = None, beta = None, gamma = None, ratio = None):
 
     """
     Returns a random mutation in a random region that matches the specified criteria.
@@ -133,6 +133,32 @@ def get_random_mut(before_base, after_base, ref_base, regions, fasta, alpha, bet
     # check if the model is valid
     if model not in models:
         raise ValueError(f"Model {model} is not valid. Choose from {models}")
+
+    # initialize alpha, beta, and gamma for K2P and K3P models
+    alpha, beta, gamma = None, None, None
+
+    # add ratio for K2P and K3P models rather than using provided alpha and beta
+    if model == "K2P":
+        if ratio is None:
+            raise ValueError("Transition-transversion ratio is required for K2P model")
+        # mkae sure that ratio is in one of the following regex formats numeric/numeric or numeric:numeric
+        if "/" in ratio:
+            alpha, beta = map(float, ratio.split("/"))
+        elif ":" in ratio:
+            alpha, beta = map(float, ratio.split(":"))
+        else:
+            raise ValueError("Transition-transversion ratio is not in the correct format")
+    
+    if model == "K3P":
+        if ratio is None:
+            raise ValueError("Transition-transversion ratio is required for K3P model")
+        # mkae sure that ratio is in one of the following regex formats numeric/numeric or numeric:numeric
+        if "/" in ratio:
+            alpha, beta, gamma = map(float, ratio.split("/"))
+        elif ":" in ratio:
+            alpha, beta, gamma = map(float, ratio.split(":"))
+        else:
+            raise ValueError("Transition-transversion ratio is not in the correct format")
 
     # get a random position from the regions
     is_wanted = False
@@ -262,7 +288,7 @@ def vcf_constr(bed_file, mut_file, fasta_file, output,
                 while not add_one_random_mut:
 
                     random_chr, random_pos, ref_base, alt = get_random_mut(
-                        before_base, after_base, ref_base, regions, fasta, alpha, beta, gamma, model, context_model
+                        before_base, after_base, ref_base, regions, fasta, alpha, beta, gamma, context_model, model
                     )
                     chr_pos = random_chr + "_" + str(random_pos)
                     if chr_pos not in chr_pos_dict:
