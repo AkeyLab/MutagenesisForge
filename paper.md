@@ -25,7 +25,7 @@ authors:
 affiliations:
  - name: The Lewis-Sigler Institute for Integrative Genomics, Princeton University, Princeton, NJ 08540, USA.
    index: 1
-date: 17 Aprul 2025
+date: 17 April 2025
 bibliography: paper.bib
 ---
 # Introduction and Statement of Need
