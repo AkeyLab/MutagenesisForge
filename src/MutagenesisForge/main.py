@@ -134,6 +134,7 @@ def exhaust(fasta, bed, by_read = False):
 
     Parameters:
         fasta (str): path to fasta file
+        bed (str): path to bed file
         by_read (bool): calculate dN/dS by gene
     
     Returns:
