@@ -1,77 +1,25 @@
 import collections
 import pysam
 import numpy as np
+from typing import Optional
+
+from .models import K2P, K3P
 
 """
-this module contains evolutionary models for simulating mutations
+This module contains evolutionary models for simulating mutations
+Now supports BED file input for extracting coding regions.
 """
 
-def exhaustive(path, by_read=False):
+def exhaustive(path: str, bed_path: Optional[str] = None, by_read: bool = False):
     codon_to_amino = {
-        "TTT": "F",
-        "TTC": "F",
-        "TTA": "L",
-        "TTG": "L",
-        "CTT": "L",
-        "CTC": "L",
-        "CTA": "L",
-        "CTG": "L",
-        "ATT": "I",
-        "ATC": "I",
-        "ATA": "I",
-        "ATG": "M",
-        "GTT": "V",
-        "GTC": "V",
-        "GTA": "V",
-        "GTG": "V",
-        "TCT": "S",
-        "TCC": "S",
-        "TCA": "S",
-        "TCG": "S",
-        "CCT": "P",
-        "CCC": "P",
-        "CCA": "P",
-        "CCG": "P",
-        "ACT": "T",
-        "ACC": "T",
-        "ACA": "T",
-        "ACG": "T",
-        "GCT": "A",
-        "GCC": "A",
-        "GCA": "A",
-        "GCG": "A",
-        "TAT": "Y",
-        "TAC": "Y",
-        "TAA": "*",
-        "TAG": "*",
-        "CAT": "H",
-        "CAC": "H",
-        "CAA": "Q",
-        "CAG": "Q",
-        "AAT": "N",
-        "AAC": "N",
-        "AAA": "K",
-        "AAG": "K",
-        "GAT": "D",
-        "GAC": "D",
-        "GAA": "E",
-        "GAG": "E",
-        "TGT": "C",
-        "TGC": "C",
-        "TGA": "*",
-        "TGG": "W",
-        "CGT": "R",
-        "CGC": "R",
-        "CGA": "R",
-        "CGG": "R",
-        "AGT": "S",
-        "AGC": "S",
-        "AGA": "R",
-        "AGG": "R",
-        "GGT": "G",
-        "GGC": "G",
-        "GGA": "G",
-        "GGG": "G",
+        "TTT": "F", "TTC": "F", "TTA": "L", "TTG": "L", "CTT": "L", "CTC": "L", "CTA": "L", "CTG": "L",
+        "ATT": "I", "ATC": "I", "ATA": "I", "ATG": "M", "GTT": "V", "GTC": "V", "GTA": "V", "GTG": "V",
+        "TCT": "S", "TCC": "S", "TCA": "S", "TCG": "S", "CCT": "P", "CCC": "P", "CCA": "P", "CCG": "P",
+        "ACT": "T", "ACC": "T", "ACA": "T", "ACG": "T", "GCT": "A", "GCC": "A", "GCA": "A", "GCG": "A",
+        "TAT": "Y", "TAC": "Y", "TAA": "*", "TAG": "*", "CAT": "H", "CAC": "H", "CAA": "Q", "CAG": "Q",
+        "AAT": "N", "AAC": "N", "AAA": "K", "AAG": "K", "GAT": "D", "GAC": "D", "GAA": "E", "GAG": "E",
+        "TGT": "C", "TGC": "C", "TGA": "*", "TGG": "W", "CGT": "R", "CGC": "R", "CGA": "R", "CGG": "R",
+        "AGT": "S", "AGC": "S", "AGA": "R", "AGG": "R", "GGT": "G", "GGC": "G", "GGA": "G", "GGG": "G"
     }
 
     bases = {"A", "C", "G", "T"}
@@ -88,7 +36,7 @@ def exhaustive(path, by_read=False):
             possible_mutations = bases.difference(base)
 
             for mutated_base in possible_mutations:
-                mutated_codon = codon[:pos] + mutated_base + codon[pos + 1 :]
+                mutated_codon = codon[:pos] + mutated_base + codon[pos + 1:]
                 mutated_amino = codon_to_amino.get(mutated_codon, None)
 
                 if mutated_amino is None:
@@ -113,21 +61,21 @@ def exhaustive(path, by_read=False):
         "num_nonsense": [],
     }
 
-    for ref in fasta.references:
-        seq = fasta.fetch(ref)
+    if bed_path:
+        with open(bed_path) as bed:
+            regions = [line.strip().split() for line in bed if not line.startswith("#")]
+    else:
+        regions = [(ref, 0, fasta.get_reference_length(ref)) for ref in fasta.references]
 
-        has_atg_start = False
-        if seq[:3] == "ATG":
-            has_atg_start = True
+    for ref, start, end in regions:
+        start, end = int(start), int(end)
+        seq = fasta.fetch(ref, start, end)
 
+        has_atg_start = seq[:3] == "ATG"
         stop_codons = ["TAA", "TGA", "TAG"]
-        stop_codon_end = False
-        if seq[-3:] in stop_codons:
-            stop_codon_end = True
+        stop_codon_end = seq[-3:] in stop_codons
 
-        codon_frequency = collections.Counter(
-            seq[i : i + 3] for i in range(0, len(seq), 3)
-        )
+        codon_frequency = collections.Counter(seq[i:i + 3] for i in range(0, len(seq), 3))
         codon_frequency = {
             codon: count for codon, count in codon_frequency.items() if len(codon) == 3
         }
@@ -154,21 +102,15 @@ def exhaustive(path, by_read=False):
 
     fasta.close()
 
-    dnds_method_1 = (sum(data["num_missense"]) + sum(data["num_nonsense"])) / sum(
-        data["num_synonymous"]
-    )
+    dnds_method_1 = (sum(data["num_missense"]) + sum(data["num_nonsense"])) / max(sum(data["num_synonymous"]), 1)
     dnds_method_2 = []
     for i in range(len(data["has_ATG_start"])):
         if data["num_synonymous"][i] == 0:
             continue
         dnds_method_2.append(
-            (data["num_missense"][i] + data["num_nonsense"][i])
-            / data["num_synonymous"][i]
+            (data["num_missense"][i] + data["num_nonsense"][i]) / data["num_synonymous"][i]
         )
 
-    dnds2_mean = np.mean(dnds_method_2)
+    dnds2_mean = np.mean(dnds_method_2) if dnds_method_2 else float('nan')
 
-    if by_read:
-        return dnds2_mean
-
-    return dnds_method_1
+    return dnds2_mean if by_read else dnds_method_1

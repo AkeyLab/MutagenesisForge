@@ -116,13 +116,18 @@ def context(vcf, bed, fasta, output, sims, model, alpha, beta, gamma, vep_call, 
     prompt='Path to fasta file',
     help='Path to fasta file',
 )
+@click.option(
+    '--bed',
+    prompt='Path to bed file',
+    help='Path to bed file',
+)
 # flag to calculate dN/dS by gene
 @click.option(
 '--by-read',
 is_flag=True,
 help='Calculate dN/dS by gene'
 )
-def exhaust(fasta, by_read = False):
+def exhaust(fasta, bed, by_read = False):
     """
     Given a fasta file, calculate the dN/dS ratio using exhaustive method 
     where each permutation of the codon is tested
@@ -136,12 +141,12 @@ def exhaust(fasta, by_read = False):
     """
     if by_read:
         click.echo("Exhaustive model ratio of each gene")
-        dnds = exhaustive(fasta, by_read=True)
+        dnds = exhaustive(fasta, bed, by_read=True)
         click.echo(f"dN/dS = {dnds}")
         click.echo("Exhaustive model complete")
     else:
         click.echo("Exhaustive model ratio of entire file")
-        dnds = exhaustive(fasta)
+        dnds = exhaustive(fasta, bed)
         click.echo(f"dN/dS = {dnds}")
         click.echo("Exhaustive model complete")
 
