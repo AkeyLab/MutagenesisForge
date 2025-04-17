@@ -42,7 +42,7 @@ MutagenesisForge offers two distinct methods to present simulated data to users:
 ## Exhaustive Model
 The exhaustive method systematically simulates all possible single-nucleotide substitutions across an input reference FASTA file. Beginning at the first found start codon, the algorithm consists of a sliding window analysis incrementing by codon, where each position has each substitution performed and categorized as either synonymous or nonsynonymous. The resulting counts of mutation type are then divided to return the simulated dN/dS ratio. This method is compatible with files with FASTA format and offers user selection for several evolutionary substitution models. Users are provided with the optional flag to restrict the exhaustive search to genomic regions of interest.
 
-# Context Model
+## Context Model
 The context simulation model draws from the context of Variant Call Format (VCF) nucleotides by forming codons from bases flanking the nucleotides of interest from a reference FASTA file. This codon is then stochastically mapped back to regions of interest within reference genome files. After mapping, the nucleotide of interest is then mutated to a base at a certain probability given the evolutionary model selected by the user. Each nucleotide from the original VCF will have its simulated coordinate and mutation stored in an output VCF file for downstream analysis of dN/dS calculation.
 
 ### Variant Effect Predictor Integration
