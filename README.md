@@ -1,4 +1,12 @@
-![logo](logo.png)
+
+
+<p align="center">
+  <img src="logo.png" width="300" alt="MutagenesisForge Logo" />
+</p>
+
+------------
+
+
 # MutagenesisForge
 CLI and python package of tools written to work with randomized mutation simulations to generate variant effects and calculate simulated transition-transversion ratios
 
