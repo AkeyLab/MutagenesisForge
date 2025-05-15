@@ -7,16 +7,29 @@
 ------------
 
 
-# MutagenesisForge
-CLI and python package of tools written to work with randomized mutation simulations to generate variant effects and calculate simulated transition-transversion ratios
+# MutagenesisForge - A framework for modeling codon-level mutational biases and d~N~/d~S~ selection
 
-## installation
+## Overview
+**MutagenesisForge** is a codon-level simulation software designed to calculate d~N~/d~S~ null models built on user-inputed data for comparative genomic analyses. It allows for the construction of input data-built codon-specific null models of evolution designed to offer data complementary to d~N~/d~S~ values produced from popular calculator tools. With MutagenesisForge, simulation functionality is brought to the user through one command line interface.
+
+Simulation Methods:
+
+- Exhaustive: 
+- Contextual: 
+
+
+## Installation
 ```bash
 pip install git+https://https://github.com/AkeyLab/MutagenesisForge
 ```
 
-## Command Line Interface
+## Exhaustive Codon Model Example
+```
+MutagenesisForge exhaust -fasta
+```
 
+
+## Context Codon Model
 ### vcf-construction
 Given input files, a VCF (variant call format) file is generated of randomized mutations with matching trinucleotide context, within the bed regions of the input fasta file.
 
