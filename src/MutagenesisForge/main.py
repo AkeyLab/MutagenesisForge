@@ -94,6 +94,8 @@ def context(vcf, bed, fasta, output, sims, model, alpha, beta, gamma, vep_call, 
         None (creates a vcf file of random mutations)
     """
     click.echo('vcf construction started')
+    click.echo(f'Using model: {model}')
+    click.echo(type(model))
     vcf_constr(bed, vcf, fasta, output, sims, vep_call, model, alpha, beta, gamma, context_model)
     print("vcf construction complete")
 

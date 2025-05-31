@@ -3,14 +3,21 @@ import pysam
 import numpy as np
 from typing import Optional
 
-from .models import K2P, K3P
+from .models import K2P, K3P, random_mutation
 
 """
 This module contains evolutionary models for simulating mutations
 Now supports BED file input for extracting coding regions.
 """
 
-def exhaustive(path: str, bed_path: Optional[str] = None, by_read: bool = False):
+def exhaustive(path: str, 
+               bed_path: Optional[str] = None, 
+               by_read: bool = False, 
+               model:str = "random", 
+               alpha:str = None, 
+               beta:str = None, 
+               gamma:str = None):
+    
     codon_to_amino = {
         "TTT": "F", "TTC": "F", "TTA": "L", "TTG": "L", "CTT": "L", "CTC": "L", "CTA": "L", "CTG": "L",
         "ATT": "I", "ATC": "I", "ATA": "I", "ATG": "M", "GTT": "V", "GTC": "V", "GTA": "V", "GTG": "V",
