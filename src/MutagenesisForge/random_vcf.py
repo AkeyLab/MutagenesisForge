@@ -7,7 +7,7 @@ from collections import defaultdict
 import yaml
 import os
 
-from .models import random_mutation, K2P, K3P, HKY85, JC69
+from .mutation_model import random_mutation, K2P, K3P, HKY85, JC69
 from .utils import load_parameter_from_yaml, check_yaml_variable
 
 """

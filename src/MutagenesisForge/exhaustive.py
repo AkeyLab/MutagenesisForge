@@ -3,7 +3,7 @@ import pysam
 import numpy as np
 from typing import Optional
 
-from .models import K2P, K3P, random_mutation
+from .mutation_model import MutationModel 
 
 """
 This module contains evolutionary models for simulating mutations
@@ -31,6 +31,9 @@ def exhaustive(path: str,
 
     bases = {"A", "C", "G", "T"}
     positions = [0, 1, 2]
+
+
+    mut_model = MutationModel()
 
     synonymous_muts_per_codon = collections.defaultdict(int)
     missense_muts_per_codon = collections.defaultdict(int)
