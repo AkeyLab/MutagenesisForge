@@ -7,7 +7,7 @@ from collections import defaultdict
 import yaml
 import os
 
-from .mutation_model import random_mutation, K2P, K3P, HKY85, JC69
+from .mutation_model import MutationModel
 from .utils import load_parameter_from_yaml, check_yaml_variable
 
 """
@@ -108,7 +108,20 @@ def is_random_pos_wanted(
         raise ValueError(f"Context model {context_model} is not valid.")
 
 
-def get_random_mut(before_base: str, after_base, ref_base, regions, fasta, context_model, model, alpha = None, beta = None, gamma = None, ratio = None):
+def get_random_mut(before_base: str, 
+                   after_base: str, 
+                   ref_base: str, 
+                   regions: list, 
+                   fasta: pysam.Fastafile, 
+                   context_model: str, 
+                   model: str, 
+                   alpha: float, 
+                   beta: float, 
+                   gamma: float, 
+                   pi_a: float, 
+                   pi_c: float, 
+                   pi_g: float, 
+                   pi_t: float):
 
     """
     Returns a random mutation in a random region that matches the specified criteria.
@@ -119,46 +132,32 @@ def get_random_mut(before_base: str, after_base, ref_base, regions, fasta, conte
         ref_base (str): reference base
         regions (list): list of regions in the bed file
         fasta (pysam.Fastafile): Fastafile object
-        model (str): evolutionary model
-        alpha (float): transition probability
-        beta (float): transversion probability
-        gamma (float): transversion probability
+        context_model (str): context model
+        model (str): mutation model type
+        alpha (float): alpha parameter for mutation model
+        beta (float): beta parameter for mutation model
+        gamma (float): gamma parameter for mutation model
+        pi_a (float): frequency of A base in mutation model
+        pi_c (float): frequency of C base in mutation model
+        pi_g (float): frequency of G base in mutation model
+        pi_t (float): frequency of T base in mutation model
 
     Returns:
         tuple: chromosome, position, reference base, alternative base
     """
 
-    # list of evolutionary models
-    models = ["random", "K2P", "K3P"]
-    # check if the model is valid
-    if model not in models:
-        raise ValueError(f"Model {model} is not valid. Choose from {models}")
 
-    # initialize alpha, beta, and gamma for K2P and K3P models
-    alpha, beta, gamma = None, None, None
-
-    # add ratio for K2P and K3P models rather than using provided alpha and beta
-    if model == "K2P":
-        if ratio is None:
-            raise ValueError("Transition-transversion ratio is required for K2P model")
-        # mkae sure that ratio is in one of the following regex formats numeric/numeric or numeric:numeric
-        if "/" in ratio:
-            alpha, beta = map(float, ratio.split("/"))
-        elif ":" in ratio:
-            alpha, beta = map(float, ratio.split(":"))
-        else:
-            raise ValueError("Transition-transversion ratio is not in the correct format")
-    
-    if model == "K3P":
-        if ratio is None:
-            raise ValueError("Transition-transversion ratio is required for K3P model")
-        # mkae sure that ratio is in one of the following regex formats numeric/numeric or numeric:numeric
-        if "/" in ratio:
-            alpha, beta, gamma = map(float, ratio.split("/"))
-        elif ":" in ratio:
-            alpha, beta, gamma = map(float, ratio.split(":"))
-        else:
-            raise ValueError("Transition-transversion ratio is not in the correct format")
+    # load in the mutation model
+    mutation_model = MutationModel(
+        model_type=model,
+        gamma=gamma,
+        alpha=alpha,
+        beta=beta,
+        pi_a=pi_a,
+        pi_c=pi_c,
+        pi_g=pi_g,
+        pi_t=pi_t
+        )
 
     # get a random position from the regions
     is_wanted = False
@@ -173,18 +172,7 @@ def get_random_mut(before_base: str, after_base, ref_base, regions, fasta, conte
 
         # if the trinucleotide context is the same, get a random alternative allele
         if is_wanted:
-
-            if model == "random":
-                alt = random_mutation(ref_base)
-
-            if model == "K2P":
-                alt = K2P(ref_base, alpha, beta)
-            
-            if model == "K3P":
-                alt = K3P(ref_base, alpha, beta, gamma)
-
-            return random_chr, random_pos, ref_base, alt
-
+            alt = mutation_model.mutate(ref_base)
 
 def create_vcf_file(input_file, output_file):
     """
