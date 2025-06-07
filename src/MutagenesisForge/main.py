@@ -121,8 +121,10 @@ def context(vcf, bed, fasta, output, sims, model, alpha, beta, gamma, vep_call, 
 @click.option(
     '--bed',
     prompt='Path to bed file',
+    default=None,
     help='Path to bed file',
 )
+
 # flag to calculate dN/dS by gene
 @click.option(
 '--by-read',

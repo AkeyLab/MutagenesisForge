@@ -6,7 +6,6 @@ this module contains evolutionary models for simulating mutations
 
 bases = ["A", "C", "G", "T"]
 
-
 def random_mutation(base):
     """
     Given a base, return a random mutation
@@ -99,3 +98,60 @@ def K3P(base, alpha, beta, gamma):
     }
 
     return np.random.choice(bases, p=[matrix_model[base][b] for b in bases])
+
+def HKY85(base, alpha, beta, pi):
+    """
+    Given a base, return a mutation based on the HKY85 substitution model
+
+    Parameters:
+        base (str): base to mutate
+        alpha (float): transition rate
+        beta (float): transversion rate
+        pi (dict): base frequencies, must sum to 1 (e.g., {'A': 0.3, 'C': 0.2, 'G': 0.2, 'T': 0.3})
+
+    Returns:
+        str: mutated base
+    """
+
+    if not np.isclose(sum(pi.values()), 1):
+        raise ValueError("Base frequencies must sum to 1")
+
+    # Define transition pairs
+    transitions = {
+        "A": "G",
+        "G": "A",
+        "C": "T",
+        "T": "C"
+    }
+
+    probs = []
+    for b in bases:
+        if b == base:
+            probs.append(0)  # no mutation to same base
+        elif b == transitions[base]:
+            probs.append(alpha * pi[b])  # transition
+        else:
+            probs.append(beta * pi[b])   # transversion
+
+    # Normalize to sum to 1
+    total = sum(probs)
+    probs = [p / total for p in probs]
+
+    return np.random.choice(bases, p=probs)
+
+
+def JC69(base, mu_t):
+    """
+    Simulate a mutation under the Jukes-Cantor (JC69) model.
+
+    Parameters:
+        base (str): original base
+        mu_t (float): product of mutation rate (mu) and time (t)
+
+    Returns:
+        str: potentially mutated base
+    """
+    p_change = 3/4 * (1 - np.exp(-4 * mu_t / 3))
+    if np.random.rand() < p_change:
+        return np.random.choice([b for b in bases if b != base])
+    return base

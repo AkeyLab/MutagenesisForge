@@ -7,7 +7,7 @@ from collections import defaultdict
 import yaml
 import os
 
-from .models import random_mutation, K2P, K3P
+from .models import random_mutation, K2P, K3P, HKY85, JC69
 from .utils import load_parameter_from_yaml, check_yaml_variable
 
 """
@@ -22,7 +22,7 @@ def my_open(filename: str, mode: str):
         yield open_file
 
 
-def get_trinucleotide_context(chrom, pos, fasta_file):
+def get_trinucleotide_context(chrom: str, pos: str, fasta_file: pysam.Fastafile):
     """
     Gets the trinucleotide alleles at the specified position.
 
@@ -41,7 +41,7 @@ def get_trinucleotide_context(chrom, pos, fasta_file):
         fasta_file.fetch(chrom, pos, pos + 1)
     )
 
-def get_random_position_in_regions(regions):
+def get_random_position_in_regions(regions: list):
     """
     Returns a random position within randomly selected region.
 
@@ -64,7 +64,7 @@ def get_base(fasta, chrom: str, pos: int):
 
 
 def is_random_pos_wanted(
-    fasta, chrom, pos, before_base, after_base, ref_base, context_model
+    fasta: pysam.FastaFile, chrom: str, pos: str, before_base: str, after_base: str, ref_base: str, context_model: str
 ):
     """
     Determines whether the random position has same trinucleotide context.
@@ -108,7 +108,7 @@ def is_random_pos_wanted(
         raise ValueError(f"Context model {context_model} is not valid.")
 
 
-def get_random_mut(before_base, after_base, ref_base, regions, fasta, context_model, model, alpha = None, beta = None, gamma = None, ratio = None):
+def get_random_mut(before_base: str, after_base, ref_base, regions, fasta, context_model, model, alpha = None, beta = None, gamma = None, ratio = None):
 
     """
     Returns a random mutation in a random region that matches the specified criteria.
@@ -254,6 +254,8 @@ def vcf_constr(bed_file, mut_file, fasta_file, output,
         None (creates a vcf file of random mutations)
     """
     # convert fasta file path into fastafile object
+    print(f"cotext model: {context_model}")
+    print(f"model: {model}")
     fasta = pysam.Fastafile(fasta_file)
 
     # read in regions from bed file
@@ -288,7 +290,7 @@ def vcf_constr(bed_file, mut_file, fasta_file, output,
                 while not add_one_random_mut:
 
                     random_chr, random_pos, ref_base, alt = get_random_mut(
-                        before_base, after_base, ref_base, regions, fasta, alpha, beta, gamma, context_model, model
+                        before_base, after_base, ref_base, regions, fasta, context_model, model, alpha, beta, gamma
                     )
                     chr_pos = random_chr + "_" + str(random_pos)
                     if chr_pos not in chr_pos_dict:
