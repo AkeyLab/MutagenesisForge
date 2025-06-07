@@ -18,8 +18,7 @@ transversions = {
 class MutationModel:
     def __init__(self, 
                  model_type: str,
-                 base:str,
-                 gamma: float = None,
+                 gamma: float = 1.0,
                  alpha: float = None, 
                  beta: float = None, 
                  pi_a: float = None,
@@ -30,7 +29,6 @@ class MutationModel:
         Initialize the mutation model.
         Parameters:
             model_type (str): Type of mutation model.
-            base (str): The base to mutate from ('A', 'C', 'G', 'T').
             gamma (float): The mutation rate.
             alpha (float): Parameter for K2P and HKY85 models.
             beta (float): Parameter for K2P and HKY85 models.
@@ -41,7 +39,6 @@ class MutationModel:
         """
         
         self.model_type = model_type
-        self.base = base
         self.alpha = alpha
         self.beta = beta
         self.gamma = gamma
@@ -50,16 +47,10 @@ class MutationModel:
         self.pi_g = pi_g
         self.pi_t = pi_t
 
-        if self.gamma is None:
-            raise ValueError("Gamma parameter must be provided for JC69 model.")
-        if self.gamma < 0 or self.gamma > 1:
-            raise ValueError("Gamma parameter must be between 0 and 1.")
-        if self.base not in bases:
-            raise ValueError(f"Base must be one of {bases}, got '{self.base}'.")
         if self.model_type not in ['random', 'JC69', 'K2P', 'F81', 'HKY85']:
             raise ValueError(f"Model type must be one of ['random', 'JC69', 'K2P', 'F81', 'HKY85'], got '{self.model_type}'.")
         
-    def should_mutate(self):
+    def should_mutate(self) -> bool:
         """
         Given the mutation rate, determine if a mutation should occur.
         Returns:
@@ -69,20 +60,20 @@ class MutationModel:
 
         
     # define mutation models
-    def random_mutation(self):
+    def random_mutation(self) -> str:
         """
         Randomly mutate a base to any of the other bases.
         """
         return random.choice(['A', 'C', 'G', 'T'])
-    def JC69(self):
+    def JC69(self, base) -> str:
         """
         Jukes-Cantor model for equal base frequencies at a set mutation rate.
         """
         # Mutate to a different base
-        possible_bases = [b for b in bases if b != self.base]
+        possible_bases = [b for b in bases if b != base]
         return random.choice(possible_bases)
-        
-    def K2P(self):
+
+    def K2P(self, base) -> str:
         """
         Kimura 2-parameter model for transitions and transversions.
         Uses parameters alpha and beta for transition and transversion rates.
@@ -98,12 +89,12 @@ class MutationModel:
         # Mutate based on the probabilities
         if random.random() < transition_probability:
             # Transition mutation
-            return random.choice(transitions[self.base])
+            return random.choice(transitions[base])
         else:
             # Transversion mutation
-            return random.choice(transversions[self.base])
-        
-    def F81(self):
+            return random.choice(transversions[base])
+
+    def F81(self, base) -> str:
         """
         Felsenstein 1981 model for nucleotide substitution.
         Uses parameters pi_a, pi_c, pi_g, pi_t for base frequencies.
@@ -124,11 +115,11 @@ class MutationModel:
             'T': self.pi_t / total_freq
         }
         # Mutate based on the probabilities
-        possible_bases = [b for b in bases if b != self.base]
+        possible_bases = [b for b in bases if b != base]
         mutated_base = random.choices(possible_bases, weights=[probabilities[b] for b in possible_bases])[0]
         return mutated_base
         
-    def HKY85(self):
+    def HKY85(self, base) -> str:
         """
         Hasegawa-Kishino-Yano 1985 model for nucleotide substitution.
         Uses parameters pi_a, pi_c, pi_g, pi_t for base frequencies and alpha, beta for transition/transversion rates.
@@ -157,97 +148,81 @@ class MutationModel:
         # Mutate based on the probabilities
         if random.random() < transition_probability:
             # Transition mutation
-            possible_bases = transitions[self.base]
+            possible_bases = transitions[base]
             mutated_base = random.choices(possible_bases, weights=[probabilities[b] for b in possible_bases])[0]
         else:
             # Transversion mutation
-            possible_bases = transversions[self.base]
+            possible_bases = transversions[base]
             mutated_base = random.choices(possible_bases, weights=[probabilities[b] for b in possible_bases])[0]
         return mutated_base
     
-    def mutate(self):
+    def mutate(self, base:str) -> str:
         """
         Simulate a mutation based on the specified model type.
         Returns the mutated base.
         """
+        if base not in bases:
+            raise ValueError(f"Base must be one of {bases}, got '{base}'.")
         # Check if mutation should occur
         if not self.should_mutate():
-            return self.base
+            return base
         if self.model_type == 'random':
             return self.random_mutation()
         elif self.model_type == 'JC69':
-            return self.JC69()
+            return self.JC69(base=base)
         elif self.model_type == 'K2P':
-            return self.K2P()
+            return self.K2P(base=base)
         elif self.model_type == 'F81':
-            return self.F81()
+            return self.F81(base=base)
         elif self.model_type == 'HKY85':
-            return self.HKY85()
+            return self.HKY85(base=base)
         else:
             raise ValueError(f"Unknown model type: {self.model_type}")
-
-
-from collections import Counter
-
-def run_model_frequencies(model_name, model_kwargs, runs=10000):
-    """
-    Run a mutation model multiple times and collect mutation frequencies.
     
-    Parameters:
-        model_name (str): Model type.
-        model_kwargs (dict): Keyword arguments for MutationModel constructor.
-        runs (int): Number of simulations.
-        
-    Returns:
-        dict: Frequencies of resulting mutations.
-    """
-    counts = Counter()
-    for _ in range(runs):
-        model = MutationModel(model_type=model_name, **model_kwargs)
-        mutated = model.mutate()
-        if mutated != model.base:
-            counts[mutated] += 1
-    total = sum(counts.values())
-    return {k: v / total for k, v in counts.items()}
+    def get_mutation_probability(self, base:str, mutated_base:str) -> float:
+        """
+        Get the mutation probability for a given base to mutate into a specific base.
+        """
+        if base not in bases or mutated_base not in bases:
+            raise ValueError(f"Both base and mutated_base must be one of {bases}.")
 
+        if self.model_type == 'random':
+            return self.gamma / 3
+        elif self.model_type == 'JC69':
+            return self.gamma / 3
+        elif self.model_type == 'K2P':
+            if base in transitions and mutated_base in transitions[base]:
+                return self.gamma * self.alpha / (self.alpha + 2 * self.beta)
+            elif base in transversions and mutated_base in transversions[base]:
+                return self.gamma * self.beta / (self.alpha + 2 * self.beta)
 
-"""
-Test the mutation models by running each one with a base and printing the frequencies of mutations.
-def test_all_models():
-    base = 'A'
-    runs = 10000
-    print(f"Testing each model with base '{base}' over {runs} runs\n")
+        elif self.model_type == 'F81':
+            total_freq = self.pi_a + self.pi_c + self.pi_g + self.pi_t
+            if total_freq <= 0:
+                raise ValueError("Base frequencies must sum to a positive value.")
+            probabilities = {
+                'A': self.pi_a / total_freq,
+                'C': self.pi_c / total_freq,
+                'G': self.pi_g / total_freq,
+                'T': self.pi_t / total_freq
+            }
+            if mutated_base in probabilities:
+                return self.gamma * probabilities[mutated_base]
+        elif self.model_type == 'HKY85':
+            total_freq = self.pi_a + self.pi_c + self.pi_g + self.pi_t
+            if total_freq <= 0:
+                raise ValueError("Base frequencies must sum to a positive value.")
+            probabilities = {
+                'A': self.pi_a / total_freq,
+                'C': self.pi_c / total_freq,
+                'G': self.pi_g / total_freq,
+                'T': self.pi_t / total_freq
+            }
+            transition_probability = self.alpha / (self.alpha + self.beta)
+            transversion_probability = self.beta / (self.alpha + self.beta)
+            if base in transitions and mutated_base in transitions[base]:
+                return self.gamma * transition_probability * probabilities[mutated_base]
+            elif base in transversions and mutated_base in transversions[base]:
+                return self.gamma * transversion_probability * probabilities[mutated_base]
 
-    print("Random Model:")
-    freqs = run_model_frequencies('random', {'base': base, 'gamma': 1.0}, runs)
-    print(freqs)
-
-    print("\nJC69 Model:")
-    freqs = run_model_frequencies('JC69', {'base': base, 'gamma': 1.0}, runs)
-    print(freqs)
-
-    print("\nK2P Model:")
-    freqs = run_model_frequencies('K2P', {
-        'base': base, 'gamma': 1.0, 'alpha': 2.0, 'beta': 1.0
-    }, runs)
-    print(freqs)
-
-    print("\nF81 Model:")
-    freqs = run_model_frequencies('F81', {
-        'base': base, 'gamma': 1.0,
-        'pi_a': 0.1, 'pi_c': 0.2, 'pi_g': 0.3, 'pi_t': 0.4
-    }, runs)
-    print(freqs)
-
-    print("\nHKY85 Model:")
-    freqs = run_model_frequencies('HKY85', {
-        'base': base, 'gamma': 1.0,
-        'alpha': 2.0, 'beta': 1.0,
-        'pi_a': 0.1, 'pi_c': 0.2, 'pi_g': 0.3, 'pi_t': 0.4
-    }, runs)
-    print(freqs)
-
-
-# Run the test
-test_all_models()
-"""
+        raise ValueError(f"Cannot calculate mutation probability for {base} to {mutated_base} with model {self.model_type}.")

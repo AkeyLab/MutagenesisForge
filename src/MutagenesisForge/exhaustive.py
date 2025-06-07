@@ -3,7 +3,7 @@ import pysam
 import numpy as np
 from typing import Optional
 
-from .mutation_model import MutationModel 
+from mutation_model import MutationModel 
 
 """
 This module contains evolutionary models for simulating mutations
@@ -16,7 +16,11 @@ def exhaustive(path: str,
                model:str = "random", 
                alpha:str = None, 
                beta:str = None, 
-               gamma:str = None):
+               gamma:str = None,
+               pi_a:str = None,
+               pi_c:str = None,
+               pi_g:str = None,
+               pi_t:str = None):
     
     codon_to_amino = {
         "TTT": "F", "TTC": "F", "TTA": "L", "TTG": "L", "CTT": "L", "CTC": "L", "CTA": "L", "CTG": "L",
@@ -30,22 +34,59 @@ def exhaustive(path: str,
     }
 
     bases = {"A", "C", "G", "T"}
-    positions = [0, 1, 2]
 
-
-    mut_model = MutationModel()
+    # intialize mutation model
+    if model == "random":
+        mutation_model = MutationModel(
+            model_type="random"
+            )
+    elif model == "JC69":
+        if gamma is None:
+            raise ValueError("Gamma parameter must be provided for JC69 model.") 
+        mutation_model = MutationModel(
+            model_type="JC69", 
+            gamma=float(gamma))
+    elif model == "K2P":
+        if alpha is None or beta is None:
+            raise ValueError("Alpha and beta parameters must be provided for K2P model.")
+        mutation_model = MutationModel(model_type="K2P", 
+                                       gamma=float(gamma), 
+                                       alpha=float(alpha), 
+                                       beta=float(beta))
+    elif model == "F81":
+        if pi_a is None or pi_c is None or pi_g is None or pi_t is None:
+            raise ValueError("All base frequencies (pi_a, pi_c, pi_g, pi_t) must be provided for F81 model.")
+        mutation_model = MutationModel(model_type="F81", 
+                                       gamma=float(gamma), 
+                                       pi_a=float(pi_a), 
+                                       pi_c=float(pi_c), 
+                                       pi_g=float(pi_g), 
+                                       pi_t=float(pi_t))
+    elif model == "HKY85":
+        if alpha is None or beta is None or pi_a is None or pi_c is None or pi_g is None or pi_t is None:
+            raise ValueError("Alpha, beta, and all base frequencies (pi_a, pi_c, pi_g, pi_t) must be provided for HKY85 model.")
+        mutation_model = MutationModel(model_type="HKY85", 
+                                       gamma=float(gamma), 
+                                       alpha=float(alpha), 
+                                       beta=float(beta), 
+                                       pi_a=float(pi_a), 
+                                       pi_c=float(pi_c), 
+                                       pi_g=float(pi_g), 
+                                       pi_t=float(pi_t))
 
     synonymous_muts_per_codon = collections.defaultdict(int)
     missense_muts_per_codon = collections.defaultdict(int)
     nonsense_muts_per_codon = collections.defaultdict(int)
 
     for codon in codon_to_amino:
-        for pos in positions:
+        for pos in [0, 1, 2]:
             base = codon[pos]
             amino = codon_to_amino[codon]
-            possible_mutations = bases.difference(base)
+            possible_mutations = bases - {base}
 
             for mutated_base in possible_mutations:
+                # Calculate mutation probability using the mutation model
+                prob = mutation_model.get_mutation_probability(base, mutated_base)
                 mutated_codon = codon[:pos] + mutated_base + codon[pos + 1:]
                 mutated_amino = codon_to_amino.get(mutated_codon, None)
 
@@ -53,11 +94,11 @@ def exhaustive(path: str,
                     continue
 
                 if mutated_amino == "*":
-                    nonsense_muts_per_codon[codon] += 1
+                    nonsense_muts_per_codon[codon] += prob
                 elif amino != mutated_amino:
-                    missense_muts_per_codon[codon] += 1
+                    missense_muts_per_codon[codon] += prob
                 else:
-                    synonymous_muts_per_codon[codon] += 1
+                    synonymous_muts_per_codon[codon] += prob
 
     fasta = pysam.FastaFile(path)
 
