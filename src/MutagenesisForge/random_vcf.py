@@ -7,11 +7,16 @@ from collections import defaultdict
 import yaml
 import os
 
-from .mutation_model import MutationModel
-from .utils import load_parameter_from_yaml, check_yaml_variable
+from mutation_model import MutationModel
+from utils import load_parameter_from_yaml, check_yaml_variable
 
 """
 This module contains functions for creating a vcf file of random mutations.
+"""
+
+"""
+Logic: Find random positions in the genome that match the created codon from a mutation following the mutation model.
+Then, return the dN/dS ratio for the new positions
 """
 
 
@@ -41,20 +46,6 @@ def get_trinucleotide_context(chrom: str, pos: str, fasta_file: pysam.Fastafile)
         fasta_file.fetch(chrom, pos, pos + 1)
     )
 
-def get_random_position_in_regions(regions: list):
-    """
-    Returns a random position within randomly selected region.
-
-     Parameters:
-        regions (list): list of regions in the bed file
-
-    Returns:
-        tuple: chromosome and position
-    """
-    region = regions[np.random.randint(0, len(regions))]
-    region_start, region_end = map(int, region.split()[1:3])
-    return region.split()[0], np.random.randint(region_start, region_end)
-
 
 def get_base(fasta, chrom: str, pos: int):
     """
@@ -64,10 +55,15 @@ def get_base(fasta, chrom: str, pos: int):
 
 
 def is_random_pos_wanted(
-    fasta: pysam.FastaFile, chrom: str, pos: str, before_base: str, after_base: str, ref_base: str, context_model: str
-):
+    fasta: pysam.FastaFile, 
+    chrom: str, 
+    pos: str, 
+    before_base: str, 
+    after_base: str, 
+    ref_base: str, 
+    context_model: str) -> bool:
     """
-    Determines whether the random position has same trinucleotide context.
+    Determines whether the random position has the correct trinucleotide context given the context model.
 
     Parameters:
         fasta (pysam.Fastafile): Fastafile object
@@ -108,20 +104,49 @@ def is_random_pos_wanted(
         raise ValueError(f"Context model {context_model} is not valid.")
 
 
+# In-memory cache for context-matching positions
+_context_match_cache = {}
+
+
+def get_matching_positions(
+    regions: list,
+    fasta: pysam.FastaFile,
+    before_base: str,
+    after_base: str,
+    ref_base: str,
+    context_model: str,
+) -> list[tuple[str, int]]:
+    """
+    Returns a list of all positions in regions that match the given context model.
+    Uses in-memory cache to avoid redundant computation.
+    """
+    cache_key = (before_base, ref_base, after_base, context_model)
+
+    if cache_key in _context_match_cache:
+        return _context_match_cache[cache_key]
+
+    matching = []
+    for region in regions:
+        chrom, start, end = region.split()[0], int(region.split()[1]), int(region.split()[2])
+        for pos in range(start + 1, end - 1):
+            try:
+                if is_random_pos_wanted(fasta, chrom, pos, before_base, after_base, ref_base, context_model):
+                    matching.append((chrom, pos))
+            except Exception:
+                continue  # skip over errors due to invalid sequence
+
+    _context_match_cache[cache_key] = matching
+    return matching
+
+
 def get_random_mut(before_base: str, 
                    after_base: str, 
                    ref_base: str, 
                    regions: list, 
-                   fasta: pysam.Fastafile, 
+                   fasta: pysam.FastaFile, 
                    context_model: str, 
-                   model: str, 
-                   alpha: float, 
-                   beta: float, 
-                   gamma: float, 
-                   pi_a: float, 
-                   pi_c: float, 
-                   pi_g: float, 
-                   pi_t: float):
+                   model: MutationModel, 
+                   ) -> tuple:
 
     """
     Returns a random mutation in a random region that matches the specified criteria.
@@ -145,9 +170,112 @@ def get_random_mut(before_base: str,
     Returns:
         tuple: chromosome, position, reference base, alternative base
     """
+    
+    matching_positions = get_matching_positions(
+        regions,
+        fasta,
+        before_base,
+        after_base,
+        ref_base,
+        context_model
+    )
+
+    if not matching_positions:
+        raise ValueError(f"No matching context found for {before_base}-{ref_base}-{after_base} under model {context_model}")
+
+    # randomly select a position from the matching positions
+    random_chr, random_pos = matching_positions[np.random.randint(len(matching_positions))]
+    
+    # Mutate the base
+    alt = model.mutate(ref_base)
+
+    
+    return random_chr, random_pos, ref_base, alt
 
 
-    # load in the mutation model
+def context_dnds(codon, mutated_codon) -> dict:
+    """
+    Computes the dN/dS ratio for the given context.
+    """
+    codon_to_amino = {
+        "TTT": "F", "TTC": "F", "TTA": "L", "TTG": "L", "CTT": "L", "CTC": "L", "CTA": "L", "CTG": "L",
+        "ATT": "I", "ATC": "I", "ATA": "I", "ATG": "M", "GTT": "V", "GTC": "V", "GTA": "V", "GTG": "V",
+        "TCT": "S", "TCC": "S", "TCA": "S", "TCG": "S", "CCT": "P", "CCC": "P", "CCA": "P", "CCG": "P",
+        "ACT": "T", "ACC": "T", "ACA": "T", "ACG": "T", "GCT": "A", "GCC": "A", "GCA": "A", "GCG": "A",
+        "TAT": "Y", "TAC": "Y", "TAA": "*", "TAG": "*", "CAT": "H", "CAC": "H", "CAA": "Q", "CAG": "Q",
+        "AAT": "N", "AAC": "N", "AAA": "K", "AAG": "K", "GAT": "D", "GAC": "D", "GAA": "E", "GAG": "E",
+        "TGT": "C", "TGC": "C", "TGA": "*", "TGG": "W", "CGT": "R", "CGC": "R", "CGA": "R", "CGG": "R",
+        "AGT": "S", "AGC": "S", "AGA": "R", "AGG": "R", "GGT": "G", "GGC": "G", "GGA": "G", "GGG": "G"
+    }
+    bases = {"A", "C", "G", "T"}
+
+    # check if the codon is valid
+    if len(codon) != 3 or not all(base in bases for base in codon):
+        raise ValueError(f"Invalid codon: {codon}. Codon must be a string of length 3 containing only A, C, G, T.")
+    # get the amino acid for the codon
+    amino_acid = codon_to_amino.get(codon, None)
+    if amino_acid is None:
+        raise ValueError(f"Invalid codon: {codon}. Codon does not map to any amino acid.")
+    # count the number of synonymous and non-synonymou mutation cites
+    N_sites = 0  # non-synonymous mutation sites
+    S_sites = 0  # synonymous mutations sites
+    for i in range(3):
+        # get the base at the current position
+        base = codon[i]
+        # iterate through the bases
+        for b in bases:
+            if b != base:
+                # create a new codon with the mutated base
+                new_codon = codon[:i] + b + codon[i + 1:]
+                # get the amino acid for the new codon
+                new_amino_acid = codon_to_amino.get(new_codon, None)
+                if new_amino_acid is None:
+                    continue
+                # check if the new amino acid is the same as the original amino acid
+                if new_amino_acid == amino_acid:
+                    S_sites += 1
+                else:
+                    N_sites += 1
+    # determine the type of mutation
+    if codon_to_amino.get(mutated_codon, None) == amino_acid:
+        mutation_type = "synonymous"
+    else:
+        mutation_type = "non-synonymous"
+
+    return {
+        "N_sites": N_sites,
+        "S_sites": S_sites,
+        "mutation_type": mutation_type
+    }
+
+
+def get_dnds(fasta: str, 
+            vcf: str, 
+            bed: str, 
+            model:str, 
+            alpha:float, 
+            beta:float, 
+            gamma:float, 
+            pi_a:float,
+            pi_c:float,
+            pi_g:float,
+            pi_t:float,
+            context_model:str):
+    """
+    Run the simulation and return calculate the dN/dS ratio.
+    """
+    # read in the fasta file
+    fasta = pysam.Fastafile(fasta)
+    # read in the vcf file
+    vcf_file = pysam.VariantFile(vcf)
+    # read in the bed file
+    regions = []
+    with my_open(bed, "r") as f:
+        for line in f:
+            line = line.strip()
+            if not line.startswith("#"):
+                regions.append(line)
+    # create a mutation model
     mutation_model = MutationModel(
         model_type=model,
         gamma=gamma,
@@ -157,22 +285,65 @@ def get_random_mut(before_base: str,
         pi_c=pi_c,
         pi_g=pi_g,
         pi_t=pi_t
-        )
+    )
+    # create a dictionary to store the dN/dS data
+    dnds_data = defaultdict(lambda: {"N_sites": 0, "S_sites": 0, "synonymous": 0, "non_synonymous": 0})
+    # iterate through the vcf file
+    for record in vcf_file:
+        # get the chromosome and position
+        chrom = record.chrom
+        pos = record.pos
+        # get the reference base and alternative base
+        ref_base = record.ref
+        alt_base = record.alts[0] if record.alts else None
+        if alt_base is None:
+            alt_base = ref_base  # if no alt base, use ref base
+            continue
+        # get the trinucleotide context
+        before_base, ref_base, after_base = get_trinucleotide_context(chrom, pos, fasta)
 
-    # get a random position from the regions
-    is_wanted = False
-    while not is_wanted:
-        random_chr, random_pos = get_random_position_in_regions(regions)
-        # determine whether the trinucleotide context is the same
-        pos_base = get_base(fasta, random_chr, random_pos)
-        # determine whether the trinucleotide context is the same
-        is_wanted = is_random_pos_wanted(
-            fasta, random_chr, random_pos, before_base, after_base, ref_base, context_model
+        # find matching random matching position within the regions
+        matching_positions = get_matching_positions(
+            regions,
+            fasta,
+            before_base,
+            after_base,
+            ref_base,
+            context_model
         )
+        # select a random position from the matching positions
+        random_chr, random_pos = matching_positions[np.random.randint(len(matching_positions))]
+        # get codon context
+        codon = get_trinucleotide_context(random_chr, random_pos, fasta)
+        # get the mutated codon
+        random_alt_base = mutation_model.mutate(ref_base)
+        mutated_codon = codon[0] + random_alt_base + codon[2]  # replace the middle base with the mutated base
 
-        # if the trinucleotide context is the same, get a random alternative allele
-        if is_wanted:
-            alt = mutation_model.mutate(ref_base)
+        # calculate dN/dS statistics for the mutated codon
+        dnds_stats = context_dnds(codon, mutated_codon, model)
+        # update the dN/dS data
+        dnds_data["N_sites"] += dnds_stats["N_sites"]
+        dnds_data["S_sites"] += dnds_stats["S_sites"]
+        if dnds_stats["mutation_type"] == "synonymous":
+            dnds_data["synonymous"] += 1
+        else:
+            dnds_data["non_synonymous"] += 1
+    
+    # calculate the dN/dS ratio
+    dN = dnds_data["non_synonymous"] / dnds_data["N_sites"] if dnds_data["N_sites"] > 0 else 0
+    dS = dnds_data["synonymous"] / dnds_data["S_sites"] if dnds_data["S_sites"] > 0 else 0
+    dnds_ratio = dN / dS if dS > 0 else float('inf')  # handle division by zero
+    # return the dN/dS ratio and the dN and dS values
+    return {
+        "dN": dN,
+        "dS": dS,
+        "dN/dS": dnds_ratio,
+        "N_sites": dnds_data["N_sites"],
+        "S_sites": dnds_data["S_sites"],
+        "synonymous": dnds_data["synonymous"],
+        "non_synonymous": dnds_data["non_synonymous"]
+    }
+
 
 def create_vcf_file(input_file, output_file):
     """
