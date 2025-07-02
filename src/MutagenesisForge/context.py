@@ -1,14 +1,15 @@
 from contextlib import contextmanager
 import gzip
 import pysam
+from Bio import SeqIO
 import numpy as np
 from collections import defaultdict
 
 import yaml
 import os
 
-from mutation_model import MutationModel
-from utils import load_parameter_from_yaml, check_yaml_variable
+from .mutation_model import MutationModel
+from .utils import load_parameter_from_yaml, check_yaml_variable
 
 """
 This module contains functions for creating a vcf file of random mutations.
@@ -249,7 +250,7 @@ def context_dnds(codon, mutated_codon) -> dict:
     }
 
 
-def get_dnds(fasta: str, 
+def context(fasta: str, 
             vcf: str, 
             bed: str, 
             model:str, 
@@ -270,11 +271,20 @@ def get_dnds(fasta: str,
     vcf_file = pysam.VariantFile(vcf)
     # read in the bed file
     regions = []
-    with my_open(bed, "r") as f:
-        for line in f:
-            line = line.strip()
-            if not line.startswith("#"):
-                regions.append(line)
+
+    if bed is not None:
+        with my_open(bed, "r") as f:
+            for line in f:
+                line = line.strip()
+                if not line.startswith("#"):
+                    regions.append(line)
+    else:
+        with my_open(fasta, "r") as f:
+            for record in SeqIO.parse(f, "fasta"):
+                chrom = record.id
+                length = len(record.seq)
+                regions.append(f"{chrom}\t0\t{length}")
+    
     # create a mutation model
     mutation_model = MutationModel(
         model_type=model,
@@ -334,6 +344,7 @@ def get_dnds(fasta: str,
     dS = dnds_data["synonymous"] / dnds_data["S_sites"] if dnds_data["S_sites"] > 0 else 0
     dnds_ratio = dN / dS if dS > 0 else float('inf')  # handle division by zero
     # return the dN/dS ratio and the dN and dS values
+    """
     return {
         "dN": dN,
         "dS": dS,
@@ -343,7 +354,8 @@ def get_dnds(fasta: str,
         "synonymous": dnds_data["synonymous"],
         "non_synonymous": dnds_data["non_synonymous"]
     }
-
+    """
+    return dnds_ratio
 
 def create_vcf_file(input_file, output_file):
     """

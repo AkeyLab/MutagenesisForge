@@ -3,15 +3,15 @@ import pysam
 import numpy as np
 from typing import Optional
 
-from mutation_model import MutationModel 
+from .mutation_model import MutationModel 
 
 """
 This module contains evolutionary models for simulating mutations
 Now supports BED file input for extracting coding regions.
 """
 
-def exhaustive(path: str, 
-               bed_path: Optional[str] = None, 
+def exhaustive(fasta: str, 
+               bed: Optional[str] = None, 
                by_read: bool = False, 
                model:str = "random", 
                alpha:str = None, 
@@ -100,7 +100,7 @@ def exhaustive(path: str,
                 else:
                     synonymous_muts_per_codon[codon] += prob
 
-    fasta = pysam.FastaFile(path)
+    fasta = pysam.FastaFile(fasta)
 
     data = {
         "has_ATG_start": [],
@@ -112,8 +112,8 @@ def exhaustive(path: str,
         "num_nonsense": [],
     }
 
-    if bed_path:
-        with open(bed_path) as bed:
+    if bed:
+        with open(bed) as bed:
             regions = [line.strip().split() for line in bed if not line.startswith("#")]
     else:
         regions = [(ref, 0, fasta.get_reference_length(ref)) for ref in fasta.references]

@@ -22,7 +22,6 @@ Simulation Methods:
 ```bash
 pip install git+https://https://github.com/AkeyLab/MutagenesisForge
 ```
-
 ## Exhaustive Codon Model Example
 ```
 MutagenesisForge exhaust -fasta
