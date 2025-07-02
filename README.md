@@ -7,81 +7,83 @@
 ------------
 
 
-# MutagenesisForge - A framework for modeling codon-level mutational biases and d~N~/d~S~ selection
+# MutagenesisForge - A framework for modeling codon-level mutational biases and d<sub>N</sub>/d<sub>S</sub> selection
 
 ## Overview
-**MutagenesisForge** is a codon-level simulation software designed to calculate d~N~/d~S~ null models built on user-inputed data for comparative genomic analyses. It allows for the construction of input data-built codon-specific null models of evolution designed to offer data complementary to d~N~/d~S~ values produced from popular calculator tools. With MutagenesisForge, simulation functionality is brought to the user through one command line interface.
+**MutagenesisForge** is a codon-level simulation software designed to calculate d~N~/d~S~ null models built on user-inputed data for comparative genomic analyses. It allows for the construction of input data-built codon-specific null models of evolution designed to offer data complementary to d<sub>N</sub>/d<sub>S</sub>values produced from popular calculator tools. With MutagenesisForge, simulation functionality is brought to the user through one tool. The `exhaust` and `context` methods are available both through the **MutagenesisForge** Python package or as a command line interface.
 
-Simulation Methods:
-
-- Exhaustive: 
-- Contextual: 
-
+Additionally, MutagenesisForge supports mutation modeling according to popular substitution models through the `MutationModel` object.
 
 ## Installation
 ```bash
 pip install git+https://https://github.com/AkeyLab/MutagenesisForge
 ```
 
-## Exhaustive Codon Model Example
+## Exhaustive Codon Model
+
+### Example CLI Usage
+```bash
+MutagenesisForge exhaustive **kwargs
 ```
-MutagenesisForge exhaust -fasta
+
+### Example Python Usage
+```python
+import MutagenesisForge as mf
+
+exhaust_dNdS = mf.exhaustive(
+  path='example.fa,
+  bed_path='example.bed',
+  model='K2P',
+  alpha=2.0,
+  beta=1.0,
+  gamma=0.5
+)
 ```
 
 
 ## Context Codon Model
-### vcf-construction
-Given input files, a VCF (variant call format) file is generated of randomized mutations with matching trinucleotide context, within the bed regions of the input fasta file.
 
-#### Inputs
-- vcf:
-vcf file path of original mutations
-- bed:
-bed file path to be used 
-- fasta:
-fasta file path used 
-- sims:
-number of vcf files generated (default = 1)
-- tstv:
-transition-transversion ratio used for mutation generation (default = 2)
-- output:
-prefix for output file (default = 'output.vcf')
-- vep-call:
-boolean which determines if Variant Effect Predictor (VEP) software is to be run on each of the created VCF files.
-
-Example usage:
+### Example CLI Usage
 ```bash
-MutagenesisForge vcf-construction --vcf ex.vcf --bed ex.bed --fasta ex.fa --tstv 2.5 --sims 40
+MutagenesisForge context **kwargs
 ```
-returns vcf file of randomizd mutations generated from random mutation of trinucleotide context of input vcf as found within bed file regions in fasta file
 
-### exhaust
-Given an input fasta file, a transition-transversion rate is calculated based off of all possible permutations of possible codons.
+### Example Python Usage
+```python
+import MutagenesisForge as mf
 
-#### Inputs
-- fasta:
-fasta file path used
-- by-read:
-tstv calculation is done by a mean of each read's tstv (default = False)
-
-Example usage:
-```bash
-MutagenesisForge exhaust --fasta ex.fa
+context_dNdS = mf.context(
+  vcf='example.vcf'
+  fasta='example.fa',
+  bed='example.bed',
+  context_model='codon',
+  model='JC69',
+  gamma=0.5
+)
 ```
-returns tstv value of each permutation of all codon positions of fasta file ex.fa
 
-### tstv-test
-A transition-transversion ratio is calculated from an input VCF file
+## MutationModel Object
 
-#### Inputs
-- vcf:
-vcf file path used
+### Example Usage
+```python
+import MutagenesisForge as mf
 
-Example usage:
-```bash
-MutagenesisForge tstv-test ex.vcf
+# Initialize the MutationModel object using K2P substitution model
+K2P_model = mf.MutationModel(
+  model_type='K2P',
+  alpha=2.0
+  gamma=1.0
+  gamma=0.5
+)
+
+# See the probability for an adenine to mutation to a guanine according to the mutation model
+mut_probs = K2P_model.get_mutation_probability(
+  base='A',
+  mutated_base='G'
+)
+
+# Simulate a mutation to an adenine according to the mutation model
+mutated_base = K2P_model.mutate(
+  base = 'A'
+)
 ```
-returns the transition-transversion ratio of file ex.vcf
-
-## Python Package Documentation
-TODO: To be written...
