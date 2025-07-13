@@ -18,16 +18,12 @@ Additionally, MutagenesisForge supports mutation modeling according to popular s
 ```bash
 pip install git+https://https://github.com/AkeyLab/MutagenesisForge
 ```
-<<<<<<< HEAD
-## Exhaustive Codon Model Example
-=======
 
 ## Exhaustive Codon Model
 
 ### Example CLI Usage
 ```bash
 MutagenesisForge exhaustive **kwargs
->>>>>>> 669b47afba33268894fae0eb0a75e1eb1d98db8f
 ```
 
 ### Example Python Usage
