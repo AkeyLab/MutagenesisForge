@@ -12,7 +12,7 @@ authors:
   - name: Cooper Koers
     orcid: 0009-0008-5214-917X
     corresponding: true
-    affiliation: 
+    affiliation: 1 
   - name: Rob F. Bierman
     orcid: 0000-0001-8513-7425
     affiliation: 1
