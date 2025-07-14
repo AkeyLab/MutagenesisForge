@@ -42,7 +42,8 @@ Despite the availability of tools to calculate d~N~/d~S~ ratios, popular methods
 
 `MutagenesisForge` offers a platform to simulate nucleotide-level substitutions according to user-inputted evolutionary models. The models are shared with the exhaustive and context methods, allowing for continuity across the framework. Given an input nucleotide and substitution model with given parameters, a corresponding nucleotide is returned following the probabilities of the substitution matrix.
 
-![**Matrix representations of supported evolutionary substitution models.**: MutagenesisForge supports the Kimura 2-parameter (K2P), Kimura 3-Parameter (K3P), Jukes-Cantor (JC69), Felenstein 4-parameter (F81), and Hasegawa, Kishino, and Yano (HKY85) substitution models of evolution to simulate single-nucleotide substitution. Rows and columns of each matrix represent the nucleotides thymine, cytosine, adenine, and guanine.](@felsenstein1981; @hasegawa1985; @jukes1969; @kimura1980; @kimura1981)
+![**Matrix representations of supported evolutionary substitution models.**: MutagenesisForge supports the Kimura 2-parameter (K2P), Kimura 3-Parameter (K3P), Jukes-Cantor (JC69), Felenstein 4-parameter (F81), and Hasegawa, Kishino, and Yano (HKY85) substitution models of evolution to simulate single-nucleotide substitution. Rows and columns of each matrix represent the nucleotides thymine, cytosine, adenine, and guanine.](fig1.png) Matrix representations of supported evolutionary substitution models [@felsenstein1981; @hasegawa1985; @jukes1969; @kimura1980; @kimura1981].
+
 
 ## d~N~/d~S~ Simulation Methods
 
