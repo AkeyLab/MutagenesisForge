@@ -64,7 +64,7 @@ The context model simulates mutations based on the nucleotide context surroundin
 
 ## Applications in Research
 
-MutagenesisForge was used in Xu et al. 2025, where it served in analysis of new somatic mutation files to compare between statistical methods of searching for de novo mutations found in other publications. MutagenesisForge-produced data served as a null model for comparison of statistically-derived mutation datasets. By comparing the mutation spectrum of actual mutation-finding models, the interface allowed for reinforced statistical assessment.
+MutagenesisForge was used in Xu et al. 2025, where it served in analysis of new somatic mutation files to compare between statistical methods of searching for de novo mutations found in other publications [@xu2025landscape]. MutagenesisForge-produced data served as a null model for comparison of statistically-derived mutation datasets. By comparing the mutation spectrum of actual mutation-finding models, the interface allowed for reinforced statistical assessment.
 
 # Acknowledgements
 
