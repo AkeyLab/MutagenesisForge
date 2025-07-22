@@ -16,3 +16,7 @@ della.txt
 *.RData
 *.Ruserdata
 *.bed
+
+dist/
+build/
+*.egg-info/
