@@ -253,15 +253,15 @@ def context_dnds(codon, mutated_codon) -> dict:
 def context(fasta: str, 
             vcf: str, 
             bed: str, 
-            model:str, 
-            alpha:float, 
-            beta:float, 
-            gamma:float, 
-            pi_a:float,
-            pi_c:float,
-            pi_g:float,
-            pi_t:float,
-            context_model:str):
+            model:str = "random", 
+            alpha:float = None, 
+            beta:float = None, 
+            gamma:float = None, 
+            pi_a:float = None,
+            pi_c:float = None,
+            pi_g:float = None,
+            pi_t:float = None,
+            context_model:str = "codon"):
     """
     Run the simulation and return calculate the dN/dS ratio.
     """
