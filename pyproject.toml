@@ -12,6 +12,7 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
+biopython = "*"
 python = "^3.9"
 pysam = "*"
 pyfaidx = "*"

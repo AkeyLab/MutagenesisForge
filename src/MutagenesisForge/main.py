@@ -1,14 +1,26 @@
-# from .utils import *
 import click
-#from scipy import stats
-from .context import context as dnds_context
-from .stat_utils import synoymous_detected, dNds, total_dNds
-from .transition_transversion import tstv
-from .exhaustive import exhaustive
+from .context2 import context as dnds_context
+from .exhaustive import exhaustive as dnds_exhaustive
 
 """
 this file is the main entry point for the MutagenesisForge package
 """
+
+"""
+def context(    
+    fasta: str, 
+    vcf: str,
+    model: str = "random", 
+    alpha: float = 2.0, 
+    beta: float = 1.0, 
+    gamma: float = 1.0, 
+    pi_a: float = 0.3,
+    pi_c: float = 0.2,
+    pi_g: float = 0.2,
+    pi_t: float = 0.3,
+    omega: float = 0.5)
+
+    """
 
 # group cli test options
 @click.group()
@@ -18,72 +30,72 @@ def cli():
 # click command for context method
 @cli.command()
 @click.option(
-    '--vcf',
-    prompt='path to reference vcf file',
-    help='path to reference vcf file',
-    required=True
-)
-@click.option(
-    '--bed',
-    '-b',
-    prompt='path to bed file',
-    help='path to bed file',
-    default=None
-)
-@click.option(
     '--fasta',
     '-f',
-    prompt='path to fasta file',
     help='path to fasta file',
     required=True
 )
 @click.option(
+    '--vcf',
+    '-v',
+    help='path to reference vcf file',
+    required=True
+)
+@click.option(
     '--alpha',
-    default = None,
-    help='alpha parameter' 
+    default = 2.0,
+    help='alpha parameter',
+    required=False
 )
 @click.option(
     '--beta',
-    default = None,
-    help='beta parameter'
+    default = 1.0,
+    help='beta parameter',
+    required=False
 )
 @click.option(
     '--gamma',
-    default = None,
-    help='gamma parameter'
+    default = 1.0,
+    help='gamma parameter',
+    required=False
 )
 @click.option(
     '--pi_a',
-    default = None,
-    help='pi_a parameter for HKY85 and F81 models'
+    default = 0.3,
+    help='pi_a parameter for HKY85 and F81 models',
+    required=False
 )
 @click.option(
     '--pi_c',
-    default = None,
-    help='pi_c parameter for HKY85 and F81 models'
+    default = 0.2,
+    help='pi_c parameter for HKY85 and F81 models',
+    required=False
 )
 @click.option(
     '--pi_g',
-    default = None,
-    help='pi_g parameter for HKY85 and F81 models'
+    default = 0.2,
+    help='pi_g parameter for HKY85 and F81 models',
+    required=False
 )
 @click.option(
     '--pi_t',
     default = None,
-    help='pi_t parameter for HKY85 and F81 models'
+    help='pi_t parameter for HKY85 and F81 models',
+    required=False
 )
 @click.option(
-    '--context_model',
-    type = click.Choice(['blind', 'ra', 'ra_ba', 'ra_aa', 'codon']),
-    default = 'codon',
-    help='context model used for mutation'
+    '--omega',
+    default = 0.5,
+    help='omega parameter for K3P model',
+    required=False
 )
 @click.option(
     '--model',
     '-m',
-    type=click.Choice(['random', 'JC69', 'K2P', 'F81', 'HKY85']),
-    default='random',
-    help='evolutionary model to use for context calculation'
+    type=click.Choice(['random', 'JC69', 'K2P', 'F81', 'HKY85', 'K3P']),
+    default='JC69',
+    help='evolutionary model to use for context calculation',
+    required=True
 )
 @click.option(
     '--sims',
@@ -94,17 +106,15 @@ def cli():
 # verbose flag
 @click.option(
     '--verbose',
-    '-v',
+    '-V',
     is_flag=True,
     help='Print verbose output'
 )
 # context model
 def context(
     vcf,
-    bed,
     fasta,
     model,
-    output,
     alpha,
     beta,
     gamma,
@@ -112,42 +122,23 @@ def context(
     pi_c,
     pi_g,
     pi_t,
-    context_model,
+    omega,
     sims,
     verbose):
     """
     Return a dN/dS ratio given the context data provided
-
-    Parameters:
-        vcf (str): path to vcf file
-        bed (str): path to bed file
-        fasta (str): path to fasta file
-        alpha (float): alpha parameter
-        beta (float): beta parameter
-        gamma (float): gamma parameter
-        pi_a (float): pi_a parameter
-        pi_c (float): pi_c parameter
-        pi_g (float): pi_g parameter
-        pi_t (float): pi_t parameter
-        context_model (str): context model
-        model (str): evolutionary model to use for context calculation
-        sims (int): number of simulations to run
-        verbose (bool): if True, print verbose output
-
-    Returns:
-        None (prints dN/dS ratio)
     """
+    ratios = []
     if verbose:
         click.echo('Verbose mode enabled')
         click.echo('Context model started')
-        click.echo(f"Calculating dN/dS ratio using {context_model} model with {model} evolutionary model")
+        click.echo(f"Calculating dN/dS ratio using evolutionary model")
     for i in range(sims):
         if verbose:
             click.echo(f"Simulation {i+1}/{sims}")
         # Call the dnds_context function with the provided parameters
         dnds = dnds_context(
-            vcf=vcf, 
-            bed=bed, 
+            vcf=vcf,  
             fasta=fasta, 
             alpha=alpha, 
             beta=beta, 
@@ -156,19 +147,34 @@ def context(
             pi_c=pi_c, 
             pi_g=pi_g, 
             pi_t=pi_t, 
-            context_model=context_model,
+            omega=omega,
             model=model
         )
+        ratios.append(dnds)
         if verbose:
             click.echo(f"dN/dS ratio for simulation {i+1}: {dnds}")
         else:
             click.echo(f"{dnds}")
-
+    if verbose:
+        click.echo(f"All dN/dS ratios: {ratios}")
+    else:
+        click.echo(f"{ratios}")
 
 # click command for exhaustive method
 
 """
-(fasta: str, bed: str | None = None, by_read: bool = False, model: str = "random", alpha: str = None, beta: str = None, gamma: str = None, pi_a: str = None, pi_c: str = None, pi_g: str = None, pi_t: str = None) -> (floating[Any] | float)
+def exhaustive(fasta: str, 
+               bed: Optional[str] = None, 
+               by_read: bool = False, 
+               model:str = "random", 
+               alpha:str = 2.0, 
+               beta:str = 1.0, 
+               gamma:str = 1.0,
+               pi_a:str = 0.3,
+               pi_c:str = 0.2,
+               pi_g:str = 0.2,
+               pi_t:str = 0.3,
+               omega:str = 0.5) -> float:
 """
 @cli.command()
 @click.option(
@@ -180,99 +186,93 @@ def context(
 @click.option(
     '--bed',
     '-b',
-    prompt='Path to bed file',
     default=None,
     help='Path to bed file',
+    required=False
 )
 @click.option(
     '--alpha',
-    default = None,
-    help='alpha parameter' 
+    default = 2.0,
+    help='alpha parameter',
+    required=False
 )
 @click.option(
     '--beta',
-    default = None,
-    help='beta parameter'
+    default = 1.0,
+    help='beta parameter',
+    required=False
 )
 @click.option(
     '--gamma',
-    default = None,
-    help='gamma parameter'
+    default = 1.0,
+    help='gamma parameter',
+    required=False
 )
 @click.option(
     '--pi_a',
-    default = None,
-    help='pi_a parameter for HKY85 and F81 models'
+    default = 0.3,
+    help='pi_a parameter for HKY85 and F81 models',
+    required=False
 )
 @click.option(
     '--pi_c',
-    default = None,
-    help='pi_c parameter for HKY85 and F81 models'
+    default = 0.2,
+    help='pi_c parameter for HKY85 and F81 models',
+    required=False
 )
 @click.option(
     '--pi_g',
-    default = None,
-    help='pi_g parameter for HKY85 and F81 models'
+    default = 0.2,
+    help='pi_g parameter for HKY85 and F81 models',
+    required=False
 )
 @click.option(
     '--pi_t',
-    default = None,
-    help='pi_t parameter for HKY85 and F81 models'
+    default = 0.3,
+    help='pi_t parameter for HKY85 and F81 models',
+    required=False
+)
+@click.option(
+    '--omega',
+    default = 0.5,
+    help='omega parameter for K3P model',
+    required=False
 )
 @click.option(
     '--model',
     '-m',
-    type=click.Choice(['random', 'JC69', 'K2P', 'F81', 'HKY85']),
-    default='random',
-    help='evolutionary model to use for context calculation'
+    type=click.Choice(['random', 'JC69', 'K2P', 'F81', 'HKY85', 'K3P']),
+    default='JC69',
+    help='evolutionary model to use for context calculation',
+    required=True
 )
-@click.option(
-    '--sims',
-    '-s',
-    default=1,
-    help='Number of simulations to run'
-)
+
 # verbose flag
 @click.option(
     '--verbose',
-    '-v',
+    '-V',
     is_flag=True,
     help='Print verbose output'
 )
 # flag to calculate dN/dS by gene
 @click.option(
-'--by-read',
-is_flag=True,
-help='Calculate dN/dS by gene'
+    '--by-read',
+    '-r',
+    is_flag=True,
+    help='Calculate dN/dS by gene',
+    required=False
 )
-def exhaust(fasta, bed, alpha, beta, gamma, pi_a, pi_c, pi_g, pi_t, model, sims, verbose, by_read):
+def exhaust(fasta, bed, alpha, beta, gamma, pi_a, pi_c, pi_g, pi_t, omega, model, verbose, by_read):
     """
     Given a fasta file, calculate the dN/dS ratio using exhaustive method 
     where each permutation of the codon is tested
-
-    Parameters:
-        fasta (str): path to fasta file
-        bed (str): path to bed file
-        alpha (float): alpha parameter
-        beta (float): beta parameter
-        gamma (float): gamma parameter
-        pi_a (float): pi_a parameter for HKY85 and F81 models
-        pi_c (float): pi_c parameter for HKY85 and F81 models
-        pi_g (float): pi_g parameter for HKY85 and F81 models
-        pi_t (float): pi_t parameter for HKY85 and F81 models
-        model (str): evolutionary model to use for context calculation
-        sims (int): number of simulations to run
-        verbose (bool): if True, print verbose output
-        by_read (bool): if True, calculate dN/dS by gene
-    Returns:
-        None (prints dN/dS ratio)
     """
     if by_read:
         if verbose:
             click.echo('Verbose mode enabled')
             click.echo('Exhaustive model started')
             click.echo(f"Calculating dN/dS ratio using {model} evolutionary model")
-        dnds = exhaustive(fasta, bed, alpha, beta, gamma, pi_a, pi_c, pi_g, pi_t, model, sims, verbose, by_read=True)
+        dnds = dnds_exhaustive(fasta=fasta, bed=bed, alpha=alpha, beta=beta, gamma=gamma, pi_a=pi_a, pi_c=pi_c, pi_g=pi_g, pi_t=pi_t, omega=omega, model=model, by_read=True)
         if verbose:
             click.echo(f"dN/dS ratio for each gene: {dnds}")
         else:
@@ -282,7 +282,7 @@ def exhaust(fasta, bed, alpha, beta, gamma, pi_a, pi_c, pi_g, pi_t, model, sims,
             click.echo('Verbose mode enabled')
             click.echo('Exhaustive model started')
             click.echo(f"Calculating dN/dS ratio using {model} evolutionary model")
-        dnds = exhaustive(fasta, bed, alpha, beta, gamma, pi_a, pi_c, pi_g, pi_t, model, sims, verbose, by_read=False)
+        dnds = dnds_exhaustive(fasta=fasta, bed=bed, alpha=alpha, beta=beta, gamma=gamma, pi_a=pi_a, pi_c=pi_c, pi_g=pi_g, pi_t=pi_t, omega=omega, model=model, by_read=False)
         if verbose:
             click.echo(f"dN/dS = {dnds}")
         else:

@@ -14,13 +14,14 @@ def exhaustive(fasta: str,
                bed: Optional[str] = None, 
                by_read: bool = False, 
                model:str = "random", 
-               alpha:str = None, 
-               beta:str = None, 
-               gamma:str = None,
-               pi_a:str = None,
-               pi_c:str = None,
-               pi_g:str = None,
-               pi_t:str = None):
+               alpha:str = 2.0, 
+               beta:str = 1.0, 
+               gamma:str = 1.0,
+               pi_a:str = 0.3,
+               pi_c:str = 0.2,
+               pi_g:str = 0.2,
+               pi_t:str = 0.3,
+               omega:str = 0.5) -> float:
     
     codon_to_amino = {
         "TTT": "F", "TTC": "F", "TTA": "L", "TTG": "L", "CTT": "L", "CTC": "L", "CTA": "L", "CTG": "L",
@@ -53,6 +54,14 @@ def exhaustive(fasta: str,
                                        gamma=float(gamma), 
                                        alpha=float(alpha), 
                                        beta=float(beta))
+    elif model == "K3P":
+        if alpha is None or beta is None or omega is None:
+            raise ValueError("Alpha, beta, and omega parameters must be provided for K3P model.")
+        mutation_model = MutationModel(model_type="K3P", 
+                                       gamma=float(gamma), 
+                                       alpha=float(alpha), 
+                                       beta=float(beta), 
+                                       omega=float(omega))
     elif model == "F81":
         if pi_a is None or pi_c is None or pi_g is None or pi_t is None:
             raise ValueError("All base frequencies (pi_a, pi_c, pi_g, pi_t) must be provided for F81 model.")

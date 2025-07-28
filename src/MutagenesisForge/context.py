@@ -4,9 +4,11 @@ import pysam
 from Bio import SeqIO
 import numpy as np
 from collections import defaultdict
-
-import yaml
+from functools import lru_cache
+from typing import Tuple, List, Optional, Dict, Any
+import logging
 import os
+import yaml
 
 from .mutation_model import MutationModel
 from .utils import load_parameter_from_yaml, check_yaml_variable
@@ -15,230 +17,314 @@ from .utils import load_parameter_from_yaml, check_yaml_variable
 This module contains functions for creating a vcf file of random mutations.
 """
 
-"""
-Logic: Find random positions in the genome that match the created codon from a mutation following the mutation model.
-Then, return the dN/dS ratio for the new positions
-"""
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+# Constants
+VALID_BASES = {'A', 'C', 'G', 'T'}
+DEFAULT_MAX_MATCHES = 1000
+
+# Codon to amino acid mapping (moved to module level for efficiency)
+CODON_TO_AMINO = {
+    "TTT": "F", "TTC": "F", "TTA": "L", "TTG": "L", "CTT": "L", "CTC": "L", "CTA": "L", "CTG": "L",
+    "ATT": "I", "ATC": "I", "ATA": "I", "ATG": "M", "GTT": "V", "GTC": "V", "GTA": "V", "GTG": "V",
+    "TCT": "S", "TCC": "S", "TCA": "S", "TCG": "S", "CCT": "P", "CCC": "P", "CCA": "P", "CCG": "P",
+    "ACT": "T", "ACC": "T", "ACA": "T", "ACG": "T", "GCT": "A", "GCC": "A", "GCA": "A", "GCG": "A",
+    "TAT": "Y", "TAC": "Y", "TAA": "*", "TAG": "*", "CAT": "H", "CAC": "H", "CAA": "Q", "CAG": "Q",
+    "AAT": "N", "AAC": "N", "AAA": "K", "AAG": "K", "GAT": "D", "GAC": "D", "GAA": "E", "GAG": "E",
+    "TGT": "C", "TGC": "C", "TGA": "*", "TGG": "W", "CGT": "R", "CGC": "R", "CGA": "R", "CGG": "R",
+    "AGT": "S", "AGC": "S", "AGA": "R", "AGG": "R", "GGT": "G", "GGC": "G", "GGA": "G", "GGG": "G"
+}
 
 
 @contextmanager
 def my_open(filename: str, mode: str):
     """A wrapper for open/gzip.open logic as a context manager"""
-    with (gzip.open(filename, mode + "t") if filename.endswith(".gz") else open(filename, mode)) as open_file:
-        yield open_file
+    try:
+        with (gzip.open(filename, mode + "t") if filename.endswith(".gz") else open(filename, mode)) as open_file:
+            yield open_file
+    except (IOError, OSError) as e:
+        logger.error(f"Error opening file {filename}: {e}")
+        raise
 
 
-def get_trinucleotide_context(chrom: str, pos: str, fasta_file: pysam.Fastafile):
+def get_trinucleotide_context(chrom: str, pos: int, fasta_file: pysam.Fastafile) -> Optional[Tuple[str, str, str]]:
     """
     Gets the trinucleotide alleles at the specified position.
 
-    Parameters:
-        chrom (str): chromosome
-        pos (int): position
-        fasta_file (pysam.Fastafile): Fastafile object
+    Args:
+        chrom: chromosome
+        pos: position (1-based)
+        fasta_file: Fastafile object
 
     Returns:
-        tuple: alleles at the position before, at, and after the specified position
+        Tuple of (before_base, current_base, after_base) or None if invalid bases found
     """
+    try:
+        # Check bounds - need at least position 2 and not at chromosome end
+        chrom_length = fasta_file.get_reference_length(chrom)
+        if pos < 2 or pos >= chrom_length:
+            logger.debug(f"Position {chrom}:{pos} too close to chromosome boundary (length: {chrom_length})")
+            return None
+            
+        before = fasta_file.fetch(chrom, pos - 2, pos - 1).upper()
+        current = fasta_file.fetch(chrom, pos - 1, pos).upper()
+        after = fasta_file.fetch(chrom, pos, pos + 1).upper()
+        
+        # Skip positions with ambiguous bases or empty sequences
+        if not all(base and base in VALID_BASES for base in [before, current, after]):
+            logger.debug(f"Skipping position {chrom}:{pos} due to ambiguous bases: {before}-{current}-{after}")
+            return None
+            
+        return (before, current, after)
+    except Exception as e:
+        logger.warning(f"Error getting trinucleotide context at {chrom}:{pos}: {e}")
+        return None
 
-    return (
-        fasta_file.fetch(chrom, pos - 2, pos - 1),
-        fasta_file.fetch(chrom, pos - 1, pos),
-        fasta_file.fetch(chrom, pos, pos + 1)
-    )
 
-
-def get_base(fasta, chrom: str, pos: int):
+def get_base(fasta: pysam.FastaFile, chrom: str, pos: int) -> Optional[str]:
     """
-    Returns the reference base before and after provided chrom, position.
+    Returns the reference base at the provided chromosome and position.
+    
+    Args:
+        fasta: FastaFile object
+        chrom: chromosome
+        pos: position (1-based)
+        
+    Returns:
+        Base at position or None if invalid
     """
-    return fasta.fetch(chrom, pos - 1, pos).upper()
+    try:
+        # Check bounds
+        chrom_length = fasta.get_reference_length(chrom)
+        if pos < 1 or pos > chrom_length:
+            logger.debug(f"Position {chrom}:{pos} out of bounds (length: {chrom_length})")
+            return None
+            
+        base = fasta.fetch(chrom, pos - 1, pos).upper()
+        return base if base and base in VALID_BASES else None
+    except Exception as e:
+        logger.warning(f"Error getting base at {chrom}:{pos}: {e}")
+        return None
 
 
 def is_random_pos_wanted(
     fasta: pysam.FastaFile, 
     chrom: str, 
-    pos: str, 
+    pos: int, 
     before_base: str, 
     after_base: str, 
     ref_base: str, 
-    context_model: str) -> bool:
+    context_model: str
+) -> bool:
     """
     Determines whether the random position has the correct trinucleotide context given the context model.
 
-    Parameters:
-        fasta (pysam.Fastafile): Fastafile object
-        chrom (str): chromosome
-        pos (int): position
-        before_base (str): base before the position
-        after_base (str): base after the position
-        ref_base (str): reference base
-        context_model (str): context model
+    Args:
+        fasta: Fastafile object
+        chrom: chromosome
+        pos: position
+        before_base: base before the position
+        after_base: base after the position
+        ref_base: reference base
+        context_model: context model
 
     Returns:
-        bool: True if the random position is wanted, False otherwise
+        True if the random position is wanted, False otherwise
     """
     pos_before = get_base(fasta, chrom, pos - 1)
     pos_after = get_base(fasta, chrom, pos + 1)
     pos_base = get_base(fasta, chrom, pos)
-    # return True if the random position is wanted, False otherwise
-    # wanted means the trinucleotide context is the same, and the before and after bases are the same
     
-    # context model options
-
-    # blind: no context model
+    # Skip if any base is invalid
+    if any(base is None for base in [pos_before, pos_after, pos_base]):
+        return False
+    
+    # Context model options
     if context_model == "blind":
         return True
-    # ra: reference allele context model
-    if context_model == "ra":
-        return (pos_base == ref_base)
-    # ra_ba: reference allele and before allele context model
-    if context_model == "ra_ba":
+    elif context_model == "ra":
+        return pos_base == ref_base
+    elif context_model == "ra_ba":
         return (pos_base == ref_base) and (pos_before == before_base)
-    # ra_aa: reference allele and after allele context model
-    if context_model == "ra_aa":
+    elif context_model == "ra_aa":
         return (pos_base == ref_base) and (pos_after == after_base)
-    # codon: codon context model
-    if context_model == "codon":
+    elif context_model == "codon":
         return (pos_base == ref_base) and (pos_before == before_base) and (pos_after == after_base)
     else:
         raise ValueError(f"Context model {context_model} is not valid.")
 
 
-# In-memory cache for context-matching positions
-_context_match_cache = {}
+@lru_cache(maxsize=500)
+def get_matching_positions_cached(
+    regions_tuple: Tuple[str, ...],
+    before_base: str,
+    after_base: str,
+    ref_base: str,
+    context_model: str,
+    fasta_path: str,
+    max_matches: int = DEFAULT_MAX_MATCHES
+) -> Tuple[Tuple[str, int], ...]:
+    """
+    Cached version of get_matching_positions.
+    Returns tuple for hashability.
+    """
+    with pysam.FastaFile(fasta_path) as fasta:
+        matching = []
+        for region in regions_tuple:
+            try:
+                parts = region.split()
+                if len(parts) < 3:
+                    logger.warning(f"Invalid region format: {region}")
+                    continue
+                chrom, start, end = parts[0], int(parts[1]), int(parts[2])
+            except (ValueError, IndexError) as e:
+                logger.warning(f"Invalid region format: {region}, error: {e}")
+                continue
+            
+            # Ensure we have valid range and avoid boundary issues
+            chrom_length = fasta.get_reference_length(chrom)
+            start = max(2, start)  # Need at least position 2 for trinucleotide context
+            end = min(end, chrom_length - 1)  # Leave room for after base
+            
+            if start >= end:
+                logger.debug(f"Invalid range for {chrom}: start={start}, end={end}")
+                continue
+            
+            for pos in range(start, end):
+                try:
+                    if is_random_pos_wanted(fasta, chrom, pos, before_base, after_base, ref_base, context_model):
+                        matching.append((chrom, pos))
+                        if len(matching) >= max_matches:
+                            break
+                except Exception as e:
+                    logger.debug(f"Error checking position {chrom}:{pos}: {e}")
+                    continue
+                    
+            if len(matching) >= max_matches:
+                break
+                
+        return tuple(matching)
 
 
 def get_matching_positions(
-    regions: list,
+    regions: List[str],
     fasta: pysam.FastaFile,
     before_base: str,
     after_base: str,
     ref_base: str,
     context_model: str,
-) -> list[tuple[str, int]]:
+    max_matches: int = DEFAULT_MAX_MATCHES
+) -> List[Tuple[str, int]]:
     """
     Returns a list of all positions in regions that match the given context model.
-    Uses in-memory cache to avoid redundant computation.
+    Uses cached function for performance.
     """
-    cache_key = (before_base, ref_base, after_base, context_model)
-
-    if cache_key in _context_match_cache:
-        return _context_match_cache[cache_key]
-
-    matching = []
-    for region in regions:
-        chrom, start, end = region.split()[0], int(region.split()[1]), int(region.split()[2])
-        for pos in range(start + 1, end - 1):
-            try:
-                if is_random_pos_wanted(fasta, chrom, pos, before_base, after_base, ref_base, context_model):
-                    matching.append((chrom, pos))
-            except Exception:
-                continue  # skip over errors due to invalid sequence
-
-    _context_match_cache[cache_key] = matching
-    return matching
+    # Convert to tuple for caching
+    regions_tuple = tuple(regions)
+    fasta_path = fasta.filename.decode() if hasattr(fasta.filename, 'decode') else str(fasta.filename)
+    
+    cached_result = get_matching_positions_cached(
+        regions_tuple, before_base, after_base, ref_base, context_model, fasta_path, max_matches
+    )
+    
+    return list(cached_result)
 
 
-def get_random_mut(before_base: str, 
-                   after_base: str, 
-                   ref_base: str, 
-                   regions: list, 
-                   fasta: pysam.FastaFile, 
-                   context_model: str, 
-                   model: MutationModel, 
-                   ) -> tuple:
-
+def get_random_mut(
+    before_base: str,
+    after_base: str,
+    ref_base: str,
+    regions: List[str],
+    fasta: pysam.FastaFile,
+    context_model: str,
+    model: MutationModel
+) -> Tuple[str, int, str, str]:
     """
     Returns a random mutation in a random region that matches the specified criteria.
 
-    Parameters:
-        before_base (str): base before the position
-        after_base (str): base after the position
-        ref_base (str): reference base
-        regions (list): list of regions in the bed file
-        fasta (pysam.Fastafile): Fastafile object
-        context_model (str): context model
-        model (str): mutation model type
-        alpha (float): alpha parameter for mutation model
-        beta (float): beta parameter for mutation model
-        gamma (float): gamma parameter for mutation model
-        pi_a (float): frequency of A base in mutation model
-        pi_c (float): frequency of C base in mutation model
-        pi_g (float): frequency of G base in mutation model
-        pi_t (float): frequency of T base in mutation model
+    Args:
+        before_base: base before the position
+        after_base: base after the position
+        ref_base: reference base
+        regions: list of regions in the bed file
+        fasta: Fastafile object
+        context_model: context model
+        model: mutation model
 
     Returns:
-        tuple: chromosome, position, reference base, alternative base
+        Tuple of (chromosome, position, reference_base, alternative_base)
+        
+    Raises:
+        ValueError: If no matching context found
     """
-    
     matching_positions = get_matching_positions(
-        regions,
-        fasta,
-        before_base,
-        after_base,
-        ref_base,
-        context_model
+        regions, fasta, before_base, after_base, ref_base, context_model
     )
 
     if not matching_positions:
         raise ValueError(f"No matching context found for {before_base}-{ref_base}-{after_base} under model {context_model}")
 
-    # randomly select a position from the matching positions
+    # Randomly select a position from the matching positions
     random_chr, random_pos = matching_positions[np.random.randint(len(matching_positions))]
     
-    # Mutate the base
-    alt = model.mutate(ref_base)
-
+    # Mutate the base - handle potential None return from mutate
+    try:
+        alt = model.mutate(ref_base)
+        if alt is None:
+            raise ValueError(f"Mutation model returned None for base {ref_base}")
+    except Exception as e:
+        logger.error(f"Error mutating base {ref_base}: {e}")
+        raise
     
     return random_chr, random_pos, ref_base, alt
 
 
-def context_dnds(codon, mutated_codon) -> dict:
+def context_dnds(codon: str, mutated_codon: str) -> Dict[str, Any]:
     """
     Computes the dN/dS ratio for the given context.
+    
+    Args:
+        codon: Original codon sequence
+        mutated_codon: Mutated codon sequence
+        
+    Returns:
+        Dictionary with N_sites, S_sites, and mutation_type
+        
+    Raises:
+        ValueError: If codon is invalid
     """
-    codon_to_amino = {
-        "TTT": "F", "TTC": "F", "TTA": "L", "TTG": "L", "CTT": "L", "CTC": "L", "CTA": "L", "CTG": "L",
-        "ATT": "I", "ATC": "I", "ATA": "I", "ATG": "M", "GTT": "V", "GTC": "V", "GTA": "V", "GTG": "V",
-        "TCT": "S", "TCC": "S", "TCA": "S", "TCG": "S", "CCT": "P", "CCC": "P", "CCA": "P", "CCG": "P",
-        "ACT": "T", "ACC": "T", "ACA": "T", "ACG": "T", "GCT": "A", "GCC": "A", "GCA": "A", "GCG": "A",
-        "TAT": "Y", "TAC": "Y", "TAA": "*", "TAG": "*", "CAT": "H", "CAC": "H", "CAA": "Q", "CAG": "Q",
-        "AAT": "N", "AAC": "N", "AAA": "K", "AAG": "K", "GAT": "D", "GAC": "D", "GAA": "E", "GAG": "E",
-        "TGT": "C", "TGC": "C", "TGA": "*", "TGG": "W", "CGT": "R", "CGC": "R", "CGA": "R", "CGG": "R",
-        "AGT": "S", "AGC": "S", "AGA": "R", "AGG": "R", "GGT": "G", "GGC": "G", "GGA": "G", "GGG": "G"
-    }
-    bases = {"A", "C", "G", "T"}
-
-    # check if the codon is valid
-    if len(codon) != 3 or not all(base in bases for base in codon):
+    # Validate codon
+    if len(codon) != 3 or not all(base in VALID_BASES for base in codon):
         raise ValueError(f"Invalid codon: {codon}. Codon must be a string of length 3 containing only A, C, G, T.")
-    # get the amino acid for the codon
-    amino_acid = codon_to_amino.get(codon, None)
+    
+    # Get the amino acid for the codon
+    amino_acid = CODON_TO_AMINO.get(codon)
     if amino_acid is None:
         raise ValueError(f"Invalid codon: {codon}. Codon does not map to any amino acid.")
-    # count the number of synonymous and non-synonymou mutation cites
+    
+    # Count the number of synonymous and non-synonymous mutation sites
     N_sites = 0  # non-synonymous mutation sites
-    S_sites = 0  # synonymous mutations sites
+    S_sites = 0  # synonymous mutation sites
+    
     for i in range(3):
-        # get the base at the current position
         base = codon[i]
-        # iterate through the bases
-        for b in bases:
+        for b in VALID_BASES:
             if b != base:
-                # create a new codon with the mutated base
                 new_codon = codon[:i] + b + codon[i + 1:]
-                # get the amino acid for the new codon
-                new_amino_acid = codon_to_amino.get(new_codon, None)
+                new_amino_acid = CODON_TO_AMINO.get(new_codon)
                 if new_amino_acid is None:
                     continue
-                # check if the new amino acid is the same as the original amino acid
+                
                 if new_amino_acid == amino_acid:
                     S_sites += 1
                 else:
                     N_sites += 1
-    # determine the type of mutation
-    if codon_to_amino.get(mutated_codon, None) == amino_acid:
+    
+    # Determine the type of mutation
+    mutated_amino_acid = CODON_TO_AMINO.get(mutated_codon)
+    if mutated_amino_acid == amino_acid:
         mutation_type = "synonymous"
     else:
         mutation_type = "non-synonymous"
@@ -250,253 +336,196 @@ def context_dnds(codon, mutated_codon) -> dict:
     }
 
 
-def context(fasta: str, 
-            vcf: str, 
-            bed: str, 
-            model:str = "random", 
-            alpha:float = None, 
-            beta:float = None, 
-            gamma:float = None, 
-            pi_a:float = None,
-            pi_c:float = None,
-            pi_g:float = None,
-            pi_t:float = None,
-            context_model:str = "codon"):
-    """
-    Run the simulation and return calculate the dN/dS ratio.
-    """
-    # read in the fasta file
-    fasta = pysam.Fastafile(fasta)
-    # read in the vcf file
-    vcf_file = pysam.VariantFile(vcf)
-    # read in the bed file
-    regions = []
+def validate_input_files(fasta_path: str, vcf_path: str, bed_path: Optional[str] = None) -> None:
+    """Validate that input files exist and are accessible."""
+    if not os.path.exists(fasta_path):
+        raise FileNotFoundError(f"FASTA file not found: {fasta_path}")
+    if not os.path.exists(vcf_path):
+        raise FileNotFoundError(f"VCF file not found: {vcf_path}")
+    if bed_path and not os.path.exists(bed_path):
+        raise FileNotFoundError(f"BED file not found: {bed_path}")
 
-    if bed is not None:
-        with my_open(bed, "r") as f:
-            for line in f:
-                line = line.strip()
-                if not line.startswith("#"):
-                    regions.append(line)
-    else:
-        with my_open(fasta, "r") as f:
-            for record in SeqIO.parse(f, "fasta"):
-                chrom = record.id
-                length = len(record.seq)
-                regions.append(f"{chrom}\t0\t{length}")
+
+def load_regions(bed_path: Optional[str], fasta: pysam.FastaFile) -> List[str]:
+    """Load genomic regions from BED file or generate from FASTA."""
+    regions = []
     
-    # create a mutation model
-    mutation_model = MutationModel(
-        model_type=model,
-        gamma=gamma,
-        alpha=alpha,
-        beta=beta,
-        pi_a=pi_a,
-        pi_c=pi_c,
-        pi_g=pi_g,
-        pi_t=pi_t
-    )
-    # create a dictionary to store the dN/dS data
-    dnds_data = defaultdict(lambda: {"N_sites": 0, "S_sites": 0, "synonymous": 0, "non_synonymous": 0})
-    # iterate through the vcf file
-    for record in vcf_file:
-        # get the chromosome and position
+    if bed_path is not None:
+        try:
+            with my_open(bed_path, "r") as f:
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith("#"):
+                        regions.append(line)
+        except Exception as e:
+            logger.error(f"Error reading BED file {bed_path}: {e}")
+            raise
+    else:
+        # Generate regions from FASTA references
+        for chrom in fasta.references:
+            length = fasta.get_reference_length(chrom)
+            regions.append(f"{chrom}\t0\t{length}")
+    
+    logger.info(f"Loaded {len(regions)} regions")
+    return regions
+
+
+def process_vcf_record(
+    record, 
+    fasta: pysam.FastaFile, 
+    regions: List[str], 
+    context_model: str, 
+    mutation_model: MutationModel
+) -> Optional[Dict[str, Any]]:
+    """
+    Process a single VCF record and return dN/dS statistics.
+    
+    Returns:
+        Dictionary with dN/dS statistics or None if processing failed
+    """
+    try:
         chrom = record.chrom
         pos = record.pos
-        # get the reference base and alternative base
         ref_base = record.ref
         alt_base = record.alts[0] if record.alts else None
+        
         if alt_base is None:
-            alt_base = ref_base  # if no alt base, use ref base
-            continue
-        # get the trinucleotide context
-        before_base, ref_base, after_base = get_trinucleotide_context(chrom, pos, fasta)
-
-        # find matching random matching position within the regions
+            logger.warning(f"No alternative allele for {chrom}:{pos}")
+            return None
+        
+        # Get the trinucleotide context
+        context_result = get_trinucleotide_context(chrom, pos, fasta)
+        if context_result is None:
+            logger.warning(f"Invalid trinucleotide context at {chrom}:{pos}")
+            return None
+            
+        before_base, ref_base_context, after_base = context_result
+        
+        # Find matching random position within the regions
         matching_positions = get_matching_positions(
-            regions,
-            fasta,
-            before_base,
-            after_base,
-            ref_base,
-            context_model
+            regions, fasta, before_base, after_base, ref_base_context, context_model
         )
-        # select a random position from the matching positions
+        
+        if not matching_positions:
+            logger.warning(f"No matching positions found for {chrom}:{pos}")
+            return None
+        
+        # Select a random position from the matching positions
         random_chr, random_pos = matching_positions[np.random.randint(len(matching_positions))]
-        # get codon context
-        codon = get_trinucleotide_context(random_chr, random_pos, fasta)
-        # get the mutated codon
-        random_alt_base = mutation_model.mutate(ref_base)
-        mutated_codon = codon[0] + random_alt_base + codon[2]  # replace the middle base with the mutated base
+        
+        # Get codon context
+        codon_context = get_trinucleotide_context(random_chr, random_pos, fasta)
+        if codon_context is None:
+            logger.warning(f"Invalid codon context at {random_chr}:{random_pos}")
+            return None
+            
+        codon = ''.join(codon_context)
+        
+        # Get the mutated codon - ensure we have valid bases
+        try:
+            random_alt_base = mutation_model.mutate(ref_base_context)
+            if random_alt_base is None:
+                logger.warning(f"Mutation model returned None for base {ref_base_context}")
+                return None
+        except Exception as e:
+            logger.warning(f"Error mutating base {ref_base_context}: {e}")
+            return None
+            
+        mutated_codon = codon_context[0] + random_alt_base + codon_context[2]
+        
+        # Calculate dN/dS statistics for the mutated codon
+        return context_dnds(codon, mutated_codon)
+        
+    except Exception as e:
+        logger.error(f"Error processing record {record.chrom}:{record.pos}: {e}")
+        return None
 
-        # calculate dN/dS statistics for the mutated codon
-        dnds_stats = context_dnds(codon, mutated_codon, model)
-        # update the dN/dS data
-        dnds_data["N_sites"] += dnds_stats["N_sites"]
-        dnds_data["S_sites"] += dnds_stats["S_sites"]
-        if dnds_stats["mutation_type"] == "synonymous":
-            dnds_data["synonymous"] += 1
-        else:
-            dnds_data["non_synonymous"] += 1
-    
-    # calculate the dN/dS ratio
+
+def calculate_dnds_ratio(dnds_data: Dict[str, int]) -> float:
+    """Calculate final dN/dS ratio from accumulated data."""
     dN = dnds_data["non_synonymous"] / dnds_data["N_sites"] if dnds_data["N_sites"] > 0 else 0
     dS = dnds_data["synonymous"] / dnds_data["S_sites"] if dnds_data["S_sites"] > 0 else 0
-    dnds_ratio = dN / dS if dS > 0 else float('inf')  # handle division by zero
-    # return the dN/dS ratio and the dN and dS values
-    """
-    return {
-        "dN": dN,
-        "dS": dS,
-        "dN/dS": dnds_ratio,
-        "N_sites": dnds_data["N_sites"],
-        "S_sites": dnds_data["S_sites"],
-        "synonymous": dnds_data["synonymous"],
-        "non_synonymous": dnds_data["non_synonymous"]
-    }
-    """
-    return dnds_ratio
+    return dN / dS if dS > 0 else float('inf')
 
-def create_vcf_file(input_file, output_file):
+
+def context(
+    fasta: str, 
+    vcf: str, 
+    bed: str = None, 
+    model: str = "random", 
+    alpha: float = None, 
+    beta: float = None, 
+    gamma: float = None, 
+    pi_a: float = None,
+    pi_c: float = None,
+    pi_g: float = None,
+    pi_t: float = None,
+    context_model: str = "codon"
+) -> float:
     """
-    Create a vcf file from the input file.
-
-    Parameters:
-        input_file (str): input file path
-        output_file (str): output vcf file path
-
+    Run the simulation and calculate the dN/dS ratio.
+    
+    Args:
+        fasta: Path to FASTA file
+        vcf: Path to VCF file
+        bed: Path to BED file (optional)
+        model: Mutation model type
+        alpha, beta, gamma: Mutation model parameters
+        pi_a, pi_c, pi_g, pi_t: Base frequency parameters
+        context_model: Context model type
+        
     Returns:
-        None (writes to output vcf file)
+        dN/dS ratio
+        
+    Raises:
+        FileNotFoundError: If input files don't exist
+        ValueError: If invalid parameters provided
     """
-    # read in the variants from the input file
-    with open(input_file, "r") as f:
-        variants = f.readlines()
-    # create the vcf header
-    vcf_header = "##fileformat=VCFv4.3\n"
-    vcf_header += '##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">\n'
-    vcf_content = "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tSAMPLE\n"
-    # create a dictionary to store the variants by chromosome and position
-    variant_dict = defaultdict(dict)
-    # iterate through the variants and create the vcf content
-    for variant in variants:
-        variant_data = variant.strip().split("\t")
-        if variant_data[0] == "CHR":
-            continue
-        chrom = int(variant_data[0])
-        pos = int(variant_data[1])
-        ref = variant_data[2]
-        alt = variant_data[-1]
-        vcf_line = f"{chrom}\t{pos}\t.\t{ref}\t{alt}\t.\t.\t.\tGT\t0/1\n"
-        variant_dict[chrom][pos] = vcf_line
-        vcf_content += vcf_line
-    # write the vcf content to the output file
-    with open(output_file, "w") as f:
-        f.write(vcf_header)
-        # write the vcf content: sort the variants by chromosome and position
-        for chrom in sorted(variant_dict.keys()):
-            for pos in sorted(variant_dict[chrom].keys()):
-                f.write(variant_dict[chrom][pos])
-
-
-def indy_vep(vep_string, num, output):
-    """
-    Modift vep call output file to individualize.
-    """
-    return vep_string.replace("-o", f" -o {output}{num}.vep ")
-
-
-def vcf_constr(bed_file, mut_file, fasta_file, output,
-                sim_num, vep_call,
-                model = "random", alpha = None, beta = None, gamma = None, context_model = "codon"):
-    """
-    Create a vcf file of random mutations given a bed file, mutation file, fasta file, output
-    file, transition-transversion ratio, number of simulations, and whether to run vep call.
-
-    Parameters:
-        bed_file (str): path to bed file
-        mut_file (str): path to mutation file
-        fasta_file (str): path to fasta file
-        output (str): output file name
-        tstv (float): transition-transversion ratio
-        sim_num (int): number of simulations
-        vep_call (bool): run vep call
-
-    Returns:
-        None (creates a vcf file of random mutations)
-    """
-    # convert fasta file path into fastafile object
-    print(f"cotext model: {context_model}")
-    print(f"model: {model}")
-    fasta = pysam.Fastafile(fasta_file)
-
-    # read in regions from bed file
-    regions = []
-    with my_open(bed_file, "r") as f:
-        for line in f:
-            line = line.strip()
-            regions.append(line)
-
-    for i in range(sim_num):
-        # code goes here
-        # create output file names based on the iteration
-        file_shell = output + str(i) + ".txt"
-        vcf_shell = output + str(i) + ".vcf"
-        with my_open(mut_file, "r") as f, my_open(file_shell, "w") as o:
-            header = f.readline().strip().split()
-            header_dict = dict(zip(header, range(len(header))))
-            chr_pos_dict = {}
-            # count = 0
-            for line in f:
-                if line.startswith("#"):
-                    continue
-                line = line.strip().split()
-                chromosome = line[0]
-                position = line[1]
-                before_base, ref_base, after_base = get_trinucleotide_context(
-                    str(chromosome), int(position), fasta
-                )
-
-                # find randomized mutations
-                add_one_random_mut = False
-                while not add_one_random_mut:
-
-                    random_chr, random_pos, ref_base, alt = get_random_mut(
-                        before_base, after_base, ref_base, regions, fasta, context_model, model, alpha, beta, gamma
-                    )
-                    chr_pos = random_chr + "_" + str(random_pos)
-                    if chr_pos not in chr_pos_dict:
-                        chr_pos_dict[chr_pos] = 1
-                        add_one_random_mut = True
-                        out_line = [
-                            random_chr,
-                            str(random_pos),
-                            ref_base,
-                            before_base,
-                            after_base,
-                            alt,
-                        ]
-                        o.write("\t".join([str(x) for x in out_line]) + "\n")
-        create_vcf_file(file_shell, vcf_shell)
-
-        # flag for vep run
-        if vep_call:
-
-            if not check_yaml_variable("parameters.yaml", "vep_tool_path"):
-                print("vep_tool_path not found in parameters.yaml")
-                return
-            # run vep call on created vcf file
-            # current path is just the path for my personal computer
-            """
-            vep = indy_vep(
-                load_parameter_from_yaml("parameters.yaml", "vep_tool_path"),
-                i,
-                output,
-            )
-            """
-            vep = load_parameter_from_yaml("parameters.yaml", "vep_tool_path") + " -i " + vcf_shell + " -o " + output + str(sim_num)
-            print(vep)
-            os.system(vep)
-
+    # Validate input files
+    validate_input_files(fasta, vcf, bed)
+    
+    # Open files with proper resource management
+    with pysam.FastaFile(fasta) as fasta_file, \
+         pysam.VariantFile(vcf) as vcf_file:
+        
+        # Load regions
+        regions = load_regions(bed, fasta_file)
+        
+        # Create mutation model
+        mutation_model = MutationModel(
+            model_type=model,
+            gamma=gamma,
+            alpha=alpha,
+            beta=beta,
+            pi_a=pi_a,
+            pi_c=pi_c,
+            pi_g=pi_g,
+            pi_t=pi_t
+        )
+        
+        # Initialize data collection
+        dnds_data = defaultdict(int)
+        processed_records = 0
+        
+        # Process VCF records
+        for record in vcf_file:
+            logger.info(f"Processing record: {record.chrom}:{record.pos} {record.ref} -> {record.alts}")
+            
+            dnds_stats = process_vcf_record(record, fasta_file, regions, context_model, mutation_model)
+            
+            if dnds_stats is not None:
+                dnds_data["N_sites"] += dnds_stats["N_sites"]
+                dnds_data["S_sites"] += dnds_stats["S_sites"]
+                if dnds_stats["mutation_type"] == "synonymous":
+                    dnds_data["synonymous"] += 1
+                else:
+                    dnds_data["non_synonymous"] += 1
+                processed_records += 1
+        
+        logger.info(f"Successfully processed {processed_records} records")
+        
+        # Calculate and return dN/dS ratio
+        return calculate_dnds_ratio(dnds_data)
 
 if __name__ == "__main__":
     pass

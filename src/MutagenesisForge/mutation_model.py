@@ -14,17 +14,30 @@ transversions = {
     'G': ['C', 'T'],
     'T': ['A', 'G']
 }
+transversion_type_1 = {
+    'A': ['T'],
+    'T': ['A'],
+    'C': ['G'],
+    'G': ['C']
+}
+transversion_type_2 = {
+    'A': ['C'],
+    'C': ['A'],
+    'G': ['T'],
+    'T': ['G']
+}
 
 class MutationModel:
     def __init__(self, 
                  model_type: str,
                  gamma: float = 1.0,
-                 alpha: float = None, 
-                 beta: float = None, 
-                 pi_a: float = None,
-                 pi_c: float = None,
-                 pi_g: float = None,
-                 pi_t: float = None):
+                 alpha: float = 2.0, 
+                 beta: float = 1.0, 
+                 pi_a: float = 0.3,
+                 pi_c: float = 0.2,
+                 pi_g: float = 0.2,
+                 pi_t: float = 0.3,
+                 omega: float = 0.5):
         """
         Initialize the mutation model.
         Parameters:
@@ -36,6 +49,7 @@ class MutationModel:
             pi_c (float): Parameter for HKY85 and F81 models.
             pi_g (float): Parameter for HKY85 and F81 models.
             pi_t (float): Parameter for HKY85 and F81 models.
+            omega (float): Parameter for K3P model.
         """
         
         self.model_type = model_type
@@ -46,9 +60,10 @@ class MutationModel:
         self.pi_c = pi_c
         self.pi_g = pi_g
         self.pi_t = pi_t
+        self.omega = omega
 
-        if self.model_type not in ['random', 'JC69', 'K2P', 'F81', 'HKY85']:
-            raise ValueError(f"Model type must be one of ['random', 'JC69', 'K2P', 'F81', 'HKY85'], got '{self.model_type}'.")
+        if self.model_type not in ['random', 'JC69', 'K2P', 'F81', 'HKY85', 'K3P']:
+            raise ValueError(f"Model type must be one of ['random', 'JC69', 'K2P', 'F81', 'HKY85', 'K3P'], got '{self.model_type}'.")
         
     def should_mutate(self) -> bool:
         """
@@ -85,7 +100,6 @@ class MutationModel:
             raise ValueError("Alpha and beta parameters must be non-negative.")
         # Calculate the probabilities of transition and transversion
         transition_probability = self.alpha / (self.alpha + self.beta)
-        transversion_probability = self.beta / (self.alpha + self.beta)
         # Mutate based on the probabilities
         if random.random() < transition_probability:
             # Transition mutation
@@ -93,6 +107,38 @@ class MutationModel:
         else:
             # Transversion mutation
             return random.choice(transversions[base])
+
+    def K3P(self, base) -> str:
+        """
+        Kimura 3-parameter model for nucleotide substitution.
+        Parameters alpha, beta, and omega are used for transition and transversion rates.
+
+        Uses transitions and transversions defined in the class.
+        1. Transition: A <-> G, C <-> T
+        2. Transversion 1: A <-> C, G <-> T
+        3. Transversion 2: A <-> T, C <-> G
+        
+        Omega is used to differentiate between the two types of transversions, where:
+        - Type 1 transversion occurs with probability omega / (beta + omega)
+        - Type 2 transversion occurs with probability beta / (beta + omega)
+        """
+        # Check if alpha, beta, and omega parameters are provided
+        if self.alpha is None or self.beta is None or self.omega is None:
+            raise ValueError("Alpha, beta, and omega parameters must be provided for K3P model.")
+        if self.alpha < 0 or self.beta < 0 or self.omega < 0:
+            raise ValueError("Alpha, beta, and omega parameters must be non-negative.")
+        # Calculate the probabilities of transition
+        transition_probability = self.alpha / (self.alpha + self.beta + self.omega)
+        if random.random() < transition_probability:
+            # Transition mutation
+            return random.choice(transitions[base])
+        else:
+            # Transversion mutation
+            if random.random() < self.omega / (self.beta + self.omega):
+                return random.choice(transversion_type_1[base])
+            else:
+                return random.choice(transversion_type_2[base])
+
 
     def F81(self, base) -> str:
         """
@@ -143,7 +189,6 @@ class MutationModel:
         }
         # Calculate the probabilities of transition and transversion
         transition_probability = self.alpha / (self.alpha + self.beta)
-        transversion_probability = self.beta / (self.alpha + self.beta)
 
         # Mutate based on the probabilities
         if random.random() < transition_probability:
@@ -176,6 +221,8 @@ class MutationModel:
             return self.F81(base=base)
         elif self.model_type == 'HKY85':
             return self.HKY85(base=base)
+        elif self.model_type == 'K3P':
+            return self.K3P(base=base)
         else:
             raise ValueError(f"Unknown model type: {self.model_type}")
     
@@ -192,10 +239,16 @@ class MutationModel:
             return self.gamma / 3
         elif self.model_type == 'K2P':
             if base in transitions and mutated_base in transitions[base]:
-                return self.gamma * self.alpha / (self.alpha + 2 * self.beta)
+                return self.gamma * self.alpha / (self.alpha + self.beta)
             elif base in transversions and mutated_base in transversions[base]:
-                return self.gamma * self.beta / (self.alpha + 2 * self.beta)
-
+                return self.gamma * self.beta / (self.alpha + self.beta)
+        elif self.model_type == 'K3P':
+            if base in transitions and mutated_base in transitions[base]:
+                return self.gamma * self.alpha / (self.alpha + self.beta + self.omega)
+            elif base in transversion_type_1 and mutated_base in transversion_type_1[base]:
+                return self.gamma * self.omega / (self.beta + self.omega)
+            elif base in transversion_type_2 and mutated_base in transversion_type_2[base]:
+                return self.gamma * self.beta / (self.beta + self.omega)
         elif self.model_type == 'F81':
             total_freq = self.pi_a + self.pi_c + self.pi_g + self.pi_t
             if total_freq <= 0:
