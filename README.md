@@ -6,6 +6,8 @@
 
 ------------
 
+[![PyPI version](https://img.shields.io/pypi/v/MutagenesisForge.svg)](https://pypi.org/project/MutagenesisForge/)
+[![Draft PDF](https://github.com/AkeyLab/MutagenesisForge/actions/workflows/draft-pdf.yml/badge.svg)](https://github.com/AkeyLab/MutagenesisForge/actions/workflows/draft-pdf.yml)
 
 # MutagenesisForge - A framework for modeling codon-level mutational biases and d<sub>N</sub>/d<sub>S</sub> selection
 
@@ -16,14 +18,14 @@ Additionally, MutagenesisForge supports mutation modeling according to popular s
 
 ## Installation
 ```bash
-pip install git+https://https://github.com/AkeyLab/MutagenesisForge
+pip install MutagenesisForge
 ```
 
 ## Exhaustive Codon Model
 
 ### Example CLI Usage
 ```bash
-MutagenesisForge exhaustive **kwargs
+MutagenesisForge exhaustive --flags
 ```
 
 ### Example Python Usage
@@ -45,7 +47,7 @@ exhaust_dNdS = mf.exhaustive(
 
 ### Example CLI Usage
 ```bash
-MutagenesisForge context **kwargs
+MutagenesisForge context --flags
 ```
 
 ### Example Python Usage
