@@ -3,7 +3,7 @@ import pysam
 import numpy as np
 from typing import Optional
 
-from .mutation_model import MutationModel 
+from .mutation_model import MutationModel
 
 """
 This module contains evolutionary models for simulating mutations
@@ -33,6 +33,8 @@ def exhaustive(fasta: str,
         "TGT": "C", "TGC": "C", "TGA": "*", "TGG": "W", "CGT": "R", "CGC": "R", "CGA": "R", "CGG": "R",
         "AGT": "S", "AGC": "S", "AGA": "R", "AGG": "R", "GGT": "G", "GGC": "G", "GGA": "G", "GGG": "G"
     }
+
+    
 
     bases = {"A", "C", "G", "T"}
 
@@ -86,6 +88,8 @@ def exhaustive(fasta: str,
     synonymous_muts_per_codon = collections.defaultdict(int)
     missense_muts_per_codon = collections.defaultdict(int)
     nonsense_muts_per_codon = collections.defaultdict(int)
+    synonymous_sites_per_codon = collections.defaultdict(int)
+    nonsynonymous_sites_per_codon = collections.defaultdict(int)
 
     for codon in codon_to_amino:
         for pos in [0, 1, 2]:
@@ -108,6 +112,32 @@ def exhaustive(fasta: str,
                     missense_muts_per_codon[codon] += prob
                 else:
                     synonymous_muts_per_codon[codon] += prob
+    # Count synonymous and nonsynonymous sites for each codon and store in dictionaries
+    for codon, amino_acid in codon_to_amino.items():
+        mutated_codon = codon
+        # Initialize counts for synonymous and nonsynonymous sites
+        N_sites = 0  # non-synonymous mutation sites
+        S_sites = 0  # synonymous mutation sites
+        # Iterate through each base in the codon
+        for i in range(3):
+            base = codon[i]
+            # Iterate through all valid bases
+            for b in bases:
+                if b != base:
+                    new_codon = codon[:i] + b + codon[i + 1:]
+                    new_amino_acid = codon_to_amino.get(new_codon)
+                    if new_amino_acid is None:
+                        continue
+                    
+                    # Count synonymous and nonsynonymous sites
+                    if new_amino_acid == amino_acid:
+                        S_sites += 1
+                    else:
+                        N_sites += 1
+        # Store the counts in the dictionaries
+        synonymous_sites_per_codon[codon] = S_sites
+        nonsynonymous_sites_per_codon[codon] = N_sites
+
 
     fasta = pysam.FastaFile(fasta)
 
@@ -119,6 +149,8 @@ def exhaustive(fasta: str,
         "num_synonymous": [],
         "num_missense": [],
         "num_nonsense": [],
+        "num_nonsynonymous_sites": [],  # Added missing key
+        "num_synonymous_sites": [],    # Added missing key
     }
 
     if bed:
@@ -152,6 +184,14 @@ def exhaustive(fasta: str,
             nonsense_muts_per_codon.get(codon, 0) * count
             for codon, count in codon_frequency.items()
         )
+        num_nonsynonymous_sites = sum(
+            nonsynonymous_sites_per_codon.get(codon, 0) * count
+            for codon, count in codon_frequency.items()
+        )
+        num_synonymous_sites = sum(
+            synonymous_sites_per_codon.get(codon, 0) * count
+            for codon, count in codon_frequency.items()
+        )
 
         data["has_ATG_start"].append(has_atg_start)
         data["stop_codon_end"].append(stop_codon_end)
@@ -159,16 +199,18 @@ def exhaustive(fasta: str,
         data["num_synonymous"].append(num_synonymous)
         data["num_missense"].append(num_missense)
         data["num_nonsense"].append(num_nonsense)
+        data["num_nonsynonymous_sites"].append(num_nonsynonymous_sites)
+        data["num_synonymous_sites"].append(num_synonymous_sites)
 
     fasta.close()
 
-    dnds_method_1 = (sum(data["num_missense"]) + sum(data["num_nonsense"])) / max(sum(data["num_synonymous"]), 1)
+    dnds_method_1 = ((sum(data["num_missense"]) + sum(data["num_nonsense"])) / sum(data['num_nonsynonymous_sites'])) / (sum(data["num_synonymous"]) / sum(data["num_synonymous_sites"])) if sum(data["num_synonymous"]) > 0 else float('nan')
     dnds_method_2 = []
     for i in range(len(data["has_ATG_start"])):
         if data["num_synonymous"][i] == 0:
             continue
         dnds_method_2.append(
-            (data["num_missense"][i] + data["num_nonsense"][i]) / data["num_synonymous"][i]
+            (((data["num_missense"][i] + data["num_nonsense"][i]) / sum(data['num_nonsynonymous_sites'])) / (data["num_synonymous"][i]) / ((data["num_synonymous_sites"][i])) if (data["num_synonymous"][i]) > 0 else float('nan'))
         )
 
     dnds2_mean = np.mean(dnds_method_2) if dnds_method_2 else float('nan')

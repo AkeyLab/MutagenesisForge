@@ -1,5 +1,5 @@
 import click
-from .context2 import context as dnds_context
+from .context import context as dnds_context
 from .exhaustive import exhaustive as dnds_exhaustive
 
 """
